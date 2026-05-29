@@ -4,12 +4,29 @@
 
 ## 包含的 Skills
 
-| Skill 名称 | 功能说明 | 适用场景 |
+| Skill 名称 | 功能说明 | 触发词示例 |
 |---|---|---|
-| `academic-conference-paper-writer` | 学术年会论文全流程写作助手 | 年会报告、会议论文 |
-| `academic-paper-writer` | 通用学术论文全流程写作助手 | 期刊论文、学位论文 |
-| `edu-research-paper` | 教学科研论文撰写辅助 | 教育科研论文、结题报告 |
-| `paperyy-aigc-rewrite` | PaperYY AIGC 检测降重改写工具 | AIGC 率降低、论文人工化改写 |
+| `academic-conference-paper-writer` | 学术年会论文全流程写作助手 | "写一篇学术会议论文" |
+| `academic-paper-writer` | 通用学术论文全流程写作助手 | "帮我写论文" |
+| `edu-research-paper` | 教学科研论文撰写辅助 | "写教学科研论文" |
+| `paperyy-aigc-rewrite` | PaperYY AIGC 检测降重改写工具 | "降低 AIGC 检测率" |
+| `backup-skills-to-github` | 备份 Skills 到 GitHub（本仓库） | "备份我的 skills" |
+
+## 仓库结构
+
+```
+workbuddy-skills/
+├── README.md
+└── skills/
+    ├── academic-conference-paper-writer/
+    ├── academic-paper-writer/
+    ├── edu-research-paper/
+    ├── paperyy-aigc-rewrite/
+    └── backup-skills-to-github/
+        ├── SKILL.md
+        ├── scripts/
+        └── references/
+```
 
 ## 安装方法
 
@@ -33,17 +50,22 @@ skills/
     ├── SKILL.md          # 核心文件，定义 skill 的触发词、工作流程
     ├── references/       # 参考资料（可选）
     ├── scripts/          # 辅助脚本（可选）
-    └── assets/           # 资源文件（可选）
+    └── assets/          # 资源文件（可选）
 ```
 
-## 触发示例
+## 使用 `backup-skills-to-github` Skill
 
-| 用户说 | 触发 Skill |
-|---|---|
-| "写一篇学术会议论文" | `academic-conference-paper-writer` |
-| "帮我写论文" | `academic-paper-writer` |
-| "写教学科研论文" | `edu-research-paper` |
-| "降低 AIGC 检测率" | `paperyy-aigc-rewrite` |
+安装 `backup-skills-to-github` skill 后，直接对 WorkBuddy 说：
+
+> "备份我的 skills 到 github"
+
+它会自动：
+1. 扫描所有 `agent_created: true` 的原创 skill
+2. 检查 GitHub 认证状态
+3. 创建或确认 `workbuddy-skills` 仓库
+4. 通过 REST API 上传所有文件（绕过 Windows git 问题）
+5. 优化仓库目录结构（`skills/` 子目录）
+6. 更新 README.md
 
 ## 关于 WorkBuddy
 
