@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Backup original skills to GitHub via REST API.
+Backup original skills to GitHub ScholarForge via REST API.
 Avoids git clone/push on Windows (schannel / sandbox issues).
+
+README 更新策略：增量模式（每次只添加新 skill 条目，保留已有内容不变）。
 
 Usage:
     python3 backup_skills.py <owner>/<repo> [--dir <subdir>] [--all] [--optimize]
 
 Examples:
     python3 backup_skills.py FooFieYoon/scholar-forge --all
-    python3 backup_skills.py FooFieYoon/scholar-forge --all --optimize
+    python3 backup_skills.py FooFieYoon/scholar-forge --skill my-skill
 """
 import os
 import sys
@@ -131,29 +133,30 @@ def upload_file(repo, file_rel, file_local, headers, subdir=""):
         return True
 
 
-def generate_readme(skills):
-    """Generate README.md content with full skill descriptions."""
-    # Build table rows
+def get_skill_description(skill_name):
+    """Extract description from a skill's SKILL.md frontmatter."""
+    skill_md_path = os.path.join(SKILLS_DIR, skill_name, "SKILL.md")
+    try:
+        with open(skill_md_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        m = re.match(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
+        if m:
+            fm = {}
+            for line in m.group(1).splitlines():
+                if ":" in line:
+                    idx = line.index(":")
+                    fm[line[:idx].strip()] = line[idx+1:].strip().strip("\"'")
+            return fm.get("description", "")
+    except Exception:
+        pass
+    return ""
+
+
+def build_initial_readme(skills):
+    """Build a fresh README from scratch (used only when README doesn't exist yet)."""
     rows = []
     for s in sorted(skills):
-        # Try to read description from SKILL.md
-        skill_md_path = os.path.join(SKILLS_DIR, s, "SKILL.md")
-        desc = ""
-        trigger = ""
-        try:
-            with open(skill_md_path, "r", encoding="utf-8") as f:
-                content = f.read()
-            # Extract description from frontmatter
-            m = re.match(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
-            if m:
-                fm = {}
-                for line in m.group(1).splitlines():
-                    if ":" in line:
-                        idx = line.index(":")
-                        fm[line[:idx].strip()] = line[idx+1:].strip().strip("\"'")
-                desc = fm.get("description", "")
-        except Exception:
-            pass
+        desc = get_skill_description(s)
         rows.append(f"| `{s}` | {desc} |")
     skills_table = "\n".join(rows)
 
@@ -180,29 +183,115 @@ def generate_readme(skills):
 """
 
 
-def upload_readme(repo, headers, skills, subdir=""):
-    """Generate and upload README.md."""
-    readme_content = generate_readme(skills)
-    content_b64 = base64.b64encode(readme_content.encode("utf-8")).decode("utf-8")
+def parse_existing_skills_from_readme(readme_text):
+    """Parse skill names already listed in the README skills table.
+    Returns set of skill names found."""
+    existing = set()
+    for line in readme_text.splitlines():
+        m = re.match(r'^\|\s*`([^`]+)`\s*\|', line)
+        if m:
+            existing.add(m.group(1))
+    return existing
 
-    url = f"https://api.github.com/repos/{repo}/contents/README.md"
-    _, err = api_request(url, "GET", headers=headers)
-    if err and err.get("message", "").startswith("Not Found"):
-        data = {"message": "Add README.md", "content": content_b64}
+
+def generate_readme_incremental(existing_readme, new_skills):
+    """Incrementally add new skill entries to existing README.
+    Only adds rows for skills NOT already in the table. Preserves all other content."""
+    existing_skills = parse_existing_skills_from_readme(existing_readme)
+    truly_new = sorted([s for s in new_skills if s not in existing_skills])
+
+    if not truly_new:
+        return None  # Nothing to add
+
+    # Build new table rows
+    new_rows = []
+    for s in truly_new:
+        desc = get_skill_description(s)
+        new_rows.append(f"| `{s}` | {desc} |")
+
+    # Find the last table row position (after the header row)
+    lines = existing_readme.splitlines()
+    last_skill_row = -1
+    for i, line in enumerate(lines):
+        if re.match(r'^\|\s*`[^`]+`\s*\|', line):
+            last_skill_row = i
+
+    if last_skill_row >= 0:
+        # Insert new rows after the last existing skill row
+        lines = lines[:last_skill_row + 1] + new_rows + lines[last_skill_row + 1:]
     else:
-        existing, _ = api_request(url, "GET", headers=headers)
-        data = {"message": "Update README.md", "content": content_b64, "sha": existing.get("sha", "")}
+        # No skill table found — append one before the footer
+        footer_marker = "> 本 README 由备份脚本自动生成"
+        inserted = False
+        for i, line in enumerate(lines):
+            if footer_marker in line:
+                # Insert skills table section before footer
+                table_section = [
+                    "",
+                    "## 包含的 Skills",
+                    "",
+                    "| Skill 名称 | 功能说明 |",
+                    "|---|---|",
+                ] + new_rows + [""]
+                lines = lines[:i] + table_section + lines[i:]
+                inserted = True
+                break
+        if not inserted:
+            # Just append at end
+            table_section = [
+                "",
+                "## 包含的 Skills",
+                "",
+                "| Skill 名称 | 功能说明 |",
+                "|---|---|",
+            ] + new_rows + [""]
+            lines = lines + table_section
 
-    _, err = api_request(url, "PUT", data=data, headers=headers)
-    if err:
-        print(f"  README upload FAIL: {err.get('message')}")
+    new_readme = "\n".join(lines)
+    print(f"  README: adding {len(truly_new)} new skill(s): {', '.join(truly_new)}")
+    return new_readme
+
+
+def upload_readme_incremental(repo, headers, skills):
+    """Fetch existing README, incrementally add new skill entries, upload."""
+    url = f"https://api.github.com/repos/{repo}/contents/README.md"
+    existing, err = api_request(url, "GET", headers=headers)
+
+    if err and err.get("message", "").startswith("Not Found"):
+        # README doesn't exist — create from scratch
+        readme_content = build_initial_readme(skills)
+        data = {"message": "Add README.md", "content": base64.b64encode(readme_content.encode("utf-8")).decode("utf-8")}
+        _, put_err = api_request(url, "PUT", data=data, headers=headers)
+        if put_err:
+            print(f"  README create FAIL: {put_err.get('message')}")
+            return False
+        print("  README.md created (initial)")
+        return True
+
+    # README exists — incremental update
+    existing_content = base64.b64decode(existing["content"]).decode("utf-8")
+    new_content = generate_readme_incremental(existing_content, skills)
+
+    if new_content is None:
+        print("  README already up to date (no new skills to add)")
+        return True
+
+    content_b64 = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
+    data = {
+        "message": "Add new skills to README (incremental)",
+        "content": content_b64,
+        "sha": existing["sha"],
+    }
+    _, put_err = api_request(url, "PUT", data=data, headers=headers)
+    if put_err:
+        print(f"  README update FAIL: {put_err.get('message')}")
         return False
-    print("  README.md uploaded")
+    print("  README.md updated (incremental)")
     return True
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Backup WorkBuddy skills to GitHub")
+    parser = argparse.ArgumentParser(description="Backup skills to GitHub ScholarForge")
     parser.add_argument("repo", help="GitHub repo, e.g. owner/repo")
     parser.add_argument("--dir", default="skills", help="Subdirectory in repo (default: skills)")
     parser.add_argument("--all", action="store_true", help="Auto-scan and upload all original skills")
@@ -247,9 +336,9 @@ def main():
         else:
             fail += 1
 
-    # Upload README
-    print("\nUploading README.md...")
-    upload_readme(args.repo, headers, skills, subdir=args.dir)
+    # Upload README (incremental — only adds new skill entries)
+    print("\nUpdating README.md (incremental)...")
+    upload_readme_incremental(args.repo, headers, skills)
 
     print(f"\nDone! Success: {ok}, Failed: {fail}")
     print(f"Repo: https://github.com/{args.repo}")

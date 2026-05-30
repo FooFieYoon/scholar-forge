@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Optimize GitHub repo layout for WorkBuddy skills backup.
+Optimize GitHub repo layout for ScholarForge skills backup.
 - Moves all skill dirs into skills/ subdirectory (if not already)
-- Generates/updates README.md with full tables
+- Updates README.md incrementally (only adds new skill entries)
 
 Usage:
     python3 optimize_layout.py <owner>/<repo>
@@ -67,20 +67,17 @@ def get_skill_names_from_repo(repo, headers):
     url = f"https://api.github.com/repos/{repo}/contents/skills"
     items, err = api_request(url, "GET", headers=headers)
     if err:
-        # skills/ doesn't exist yet, list root
         url = f"https://api.github.com/repos/{repo}/contents"
         items, _ = api_request(url, "GET", headers=headers)
-        # Filter out README.md and non-dir items
         skills = [it["name"] for it in items
                   if it["type"] == "dir" and it["name"] != "skills"]
-        return skills, False  # (names, already_in_skills_dir)
+        return skills, False
     skills = [it["name"] for it in items if it["type"] == "dir"]
     return skills, True
 
 
 def move_file(repo, old_path, new_path, headers):
     """Move a file by re-uploading to new path and deleting old."""
-    # GET old file
     old_url = f"https://api.github.com/repos/{repo}/contents/{old_path}"
     data, err = api_request(old_url, "GET", headers=headers)
     if err:
@@ -89,10 +86,9 @@ def move_file(repo, old_path, new_path, headers):
     sha = data["sha"]
     content_b64 = data["content"].strip()
 
-    # PUT to new path
     new_url = f"https://api.github.com/repos/{repo}/contents/{new_path}"
     payload = {
-        "message": f"Move {old_path} → {new_path}",
+        "message": f"Move {old_path} -> {new_path}",
         "content": content_b64,
     }
     _, err = api_request(new_url, "PUT", data=payload, headers=headers)
@@ -100,7 +96,6 @@ def move_file(repo, old_path, new_path, headers):
         print(f"  FAIL move {old_path}: {err.get('message')}")
         return False
 
-    # DELETE old path
     del_payload = {
         "message": f"Delete old {old_path}",
         "sha": sha,
@@ -111,103 +106,112 @@ def move_file(repo, old_path, new_path, headers):
     return True
 
 
-def generate_readme(skills, repo_owner, repo_name):
-    """Generate a comprehensive README.md."""
+def build_initial_readme(skills):
+    """Build a fresh README from scratch."""
     rows = []
     for s in sorted(skills):
-        rows.append(f"| `{s}` | 原创 Skill | `agent_created: true` |")
-
+        rows.append(f"| `{s}` | 原创 Skill |")
     skills_table = "\n".join(rows) if rows else "（无）"
 
-    return f"""# WorkBuddy Skills Backup
+    return f"""# ScholarForge / 学术匠心工坊
 
-本仓库备份 WorkBuddy AI 助手的**原创 Skills**（`agent_created: true`），可直接导入使用。
+> **Author: Yin**
+> AI 驱动的学术写作与知识产权工具集。
+
+---
 
 ## 包含的 Skills
 
-| Skill 名称 | 类型 | 说明 |
-|---|---|---|
+| Skill 名称 | 类型 |
+|---|---|
 {skills_table}
 
-## 安装方法
+---
 
-将需要的 skill 目录复制到 WorkBuddy 的 skills 目录：
-
-```bash
-# 用户级安装（所有项目可用）
-cp -r skills/<skill-name> ~/.workbuddy/skills/
-
-# 项目级安装（仅当前项目）
-cp -r skills/<skill-name> <project-root>/.workbuddy/skills/
-```
-
-安装后重启 WorkBuddy 即可使用。
-
-## 仓库结构
-
-```
-scholar-forge/
-├── README.md
-└── skills/
-    ├── <skill-name>/
-    │   ├── SKILL.md          # 核心文件
-    │   ├── references/       # 参考资料（可选）
-    │   ├── scripts/          # 辅助脚本（可选）
-    │   └── assets/           # 资源文件（可选）
-    └── ...
-```
-
-## 触发示例
-
-| 用户说 | 触发 Skill |
-|---|---|
-| "写一篇学术会议论文" | `academic-conference-paper-writer` |
-| "帮我写论文" | `academic-paper-writer` |
-| "写教学科研论文" | `edu-research-paper` |
-| "降低 AIGC 检测率" | `paperyy-aigc-rewrite` |
-| "备份我的 skills" | `backup-skills-to-github` |
-
-## 关于 WorkBuddy Skills
-
-每个 Skill 是一个独立的能力模块，包含：
-
-- **SKILL.md** — 核心文件，定义触发词、工作流程、注意事项
-- **references/** — 参考文档，供 Skill 运行时查阅
-- **scripts/** — 辅助脚本，完成自动化任务
-- **assets/** — 资源文件（图片、模板等）
-
-## 相关链接
-
-- 官网：https://www.workbuddy.ai
-- Skills 文档：https://www.workbuddy.ai/docs/skills
-
-## 贡献
-
-欢迎提交 PR 改进这些 Skills！
+> 本 README 由优化脚本自动生成。
+> 仓库地址：[github.com/FooFieYoon/scholar-forge](https://github.com/FooFieYoon/scholar-forge)
 
 ---
-*由 WorkBuddy 自动备份 · 最后更新：2026-05-30*
+*By Yin*
 """
 
 
-def update_readme(repo, headers, skills):
-    """Update README.md in repo root."""
-    content = generate_readme(skills, repo.split("/")[0], repo.split("/")[1])
-    content_b64 = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+def parse_existing_skills_from_readme(readme_text):
+    """Parse skill names already listed in the README table."""
+    existing = set()
+    for line in readme_text.splitlines():
+        m = re.match(r'^\|\s*`([^`]+)`\s*\|', line)
+        if m:
+            existing.add(m.group(1))
+    return existing
 
-    url = f"https://api.github.com/repos/{repo}/contents/README.md"
-    _, err = api_request(url, "GET", headers=headers)
-    if err and err.get("message", "").startswith("Not Found"):
-        payload = {"message": "Add README.md", "content": content_b64}
+
+def generate_readme_incremental(existing_readme, new_skills):
+    """Incrementally add new skill entries. Returns None if no changes needed."""
+    existing_skills = parse_existing_skills_from_readme(existing_readme)
+    truly_new = sorted([s for s in new_skills if s not in existing_skills])
+
+    if not truly_new:
+        return None
+
+    new_rows = [f"| `{s}` | 原创 Skill |" for s in truly_new]
+
+    lines = existing_readme.splitlines()
+    last_skill_row = -1
+    for i, line in enumerate(lines):
+        if re.match(r'^\|\s*`[^`]+`\s*\|', line):
+            last_skill_row = i
+
+    if last_skill_row >= 0:
+        lines = lines[:last_skill_row + 1] + new_rows + lines[last_skill_row + 1:]
     else:
-        existing, _ = api_request(url, "GET", headers=headers)
-        payload = {"message": "Update README.md", "content": content_b64, "sha": existing.get("sha", "")}
+        # Append table at end
+        table_section = [
+            "",
+            "## 包含的 Skills",
+            "",
+            "| Skill 名称 | 类型 |",
+            "|---|---|",
+        ] + new_rows + [""]
+        lines = lines + table_section
 
-    _, err = api_request(url, "PUT", data=payload, headers=headers)
-    if err:
-        print(f"  README update FAIL: {err.get('message')}")
+    print(f"  README: adding {len(truly_new)} new skill(s): {', '.join(truly_new)}")
+    return "\n".join(lines)
+
+
+def update_readme_incremental(repo, headers, skills):
+    """Fetch existing README, incrementally add new skill entries, upload."""
+    url = f"https://api.github.com/repos/{repo}/contents/README.md"
+    existing, err = api_request(url, "GET", headers=headers)
+
+    if err and err.get("message", "").startswith("Not Found"):
+        content = build_initial_readme(skills)
+        data = {"message": "Add README.md", "content": base64.b64encode(content.encode("utf-8")).decode("utf-8")}
+        _, put_err = api_request(url, "PUT", data=data, headers=headers)
+        if put_err:
+            print(f"  README create FAIL: {put_err.get('message')}")
+            return False
+        print("  README.md created (initial)")
+        return True
+
+    existing_content = base64.b64decode(existing["content"]).decode("utf-8")
+    new_content = generate_readme_incremental(existing_content, skills)
+
+    if new_content is None:
+        print("  README already up to date (no new skills)")
+        return True
+
+    content_b64 = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
+    data = {
+        "message": "Add new skills to README (incremental)",
+        "content": content_b64,
+        "sha": existing["sha"],
+    }
+    _, put_err = api_request(url, "PUT", data=data, headers=headers)
+    if put_err:
+        print(f"  README update FAIL: {put_err.get('message')}")
         return False
-    print("  README.md updated")
+    print("  README.md updated (incremental)")
     return True
 
 
@@ -226,18 +230,15 @@ def main():
     print(f"Optimizing {repo} ...")
     print()
 
-    # Step 1: Check current layout
     skills, already_in_subdir = get_skill_names_from_repo(repo, headers)
     print(f"Found skills: {', '.join(skills) if skills else '(none)'}")
     print(f"Already in skills/ subdir: {already_in_subdir}")
     print()
 
     if not already_in_subdir and skills:
-        # Step 2: Move each skill into skills/ subdir
         print("Moving skills into skills/ subdir...")
         moved = 0
         for skill_name in skills:
-            # List all files under this skill
             files = list_repo_files(repo, headers, skill_name)
             ok = True
             for fpath in files:
@@ -251,11 +252,9 @@ def main():
         print(f"  Total files moved: {moved}")
         print()
 
-    # Step 3: Update README.md
-    print("Updating README.md...")
-    # Re-fetch skill names after move
+    print("Updating README.md (incremental)...")
     skills, _ = get_skill_names_from_repo(repo, headers)
-    update_readme(repo, headers, skills)
+    update_readme_incremental(repo, headers, skills)
 
     print()
     print(f"Done! Repo: https://github.com/{repo}")
