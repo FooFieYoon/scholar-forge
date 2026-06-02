@@ -221,3 +221,9 @@ git clone https://github.com/FooFieYoon/scholar-forge.git ~/scholar-forge/
 ---
 
 *Made with ❤️ by Yin*
+
+## 包含的 Skills
+
+| Skill 名称 | 功能说明 |
+|---|---|
+| `academic-ppt-generator` | > |
