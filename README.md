@@ -1,15 +1,15 @@
 # ScholarForge / 学术匠心工坊
 
-> AI 驱动的学术写作与知识产权工具集 —— 从选题到成稿，从代码到软著。
+> AI 驱动的学术写作与知识产权工具集 —— 从选题到成稿，从代码到软著，从讲稿到汇报。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-6-blue)](skills/)
+[![Skills](https://img.shields.io/badge/Skills-7-blue)](skills/)
 
 ---
 
 ## 简介
 
-ScholarForge（学术匠心工坊）是一套面向研究人员、教师和开发者的 AI 技能合集，覆盖学术论文全流程写作、AIGC 检测降重改写，以及软件著作权登记材料自动生成。
+ScholarForge（学术匠心工坊）是一套面向研究人员、教师和开发者的 AI 技能合集，覆盖学术论文全流程写作、AIGC 检测降重改写、学术汇报PPT制作，以及软件著作权登记材料自动生成。
 
 所有技能均为 Markdown 格式的指令文件（SKILL.md），可导入到支持自定义指令的主流 AI 编程平台使用。
 
@@ -23,6 +23,9 @@ scholar-forge/
 │   ├── academic-conference-paper-writer/      # 学术年会论文写作
 │   ├── academic-paper-writer/                 # 通用学术论文写作
 │   │   └── references/                        #   结构/引文/风格参考
+│   ├── academic-ppt-generator/                # 学术PPT生成器
+│   │   ├── scripts/                           #   图表/PPT/QA脚本
+│   │   └── references/                        #   布局模板+踩坑经验
 │   ├── edu-research-paper/                    # 教学科研论文写作
 │   ├── paperyy-aigc-rewrite/                  # AIGC 检测降重改写
 │   │   ├── references/                        #   检测规则+改写范例
@@ -134,7 +137,46 @@ scholar-forge/
 
 ---
 
-### 6. 技能备份同步
+### 6. 学术汇报PPT生成器 ✨ NEW
+**`academic-ppt-generator`**
+
+从学术论文/发言稿出发，自动生成专业学术汇报PPT。支持参考PPT设计DNA提取、学术级图表绘制（matplotlib 300DPI）、多样化布局排版、Visual QA验证，实现"讲稿→PPT"的一键转换。
+
+| 触发关键词 | 适用场景 |
+|-----------|---------|
+| 学术PPT、汇报PPT、答辩PPT、论文汇报、学术报告PPT、制作PPT、生成PPT | 提供论文/发言稿，需要制作符合学术规范的高质量汇报PPT |
+
+**核心能力：**
+- 源文档解析 —— 自动提取发言稿/论文的章节结构、核心论点、关键数据
+- 参考PPT设计DNA分析 —— 提取目标PPT的配色方案、字号体系、布局模式、设计元素
+- 学术级图表生成 —— matplotlib 300DPI，6种专业图表类型（柱状图/框架图/架构图/保障图/对比图/时间线）
+- 多样化布局排版 —— 10种学术PPT布局模板，每页根据内容类型选择最佳布局
+- Visual QA验证 —— python-pptx自动检测元素遮挡、页面溢出、间距异常
+- 迭代优化 —— 自动修复遮挡问题，支持多轮调整
+
+**6种学术图表类型：**
+
+| 图表类型 | 适用场景 | 学术规范 |
+|---------|---------|---------|
+| 水平柱状图+目标参考线 | 数据缺口/差距展示 | 图例+数据来源脚注+差距区间填充 |
+| 中心辐射式概念框架图 | 理论框架/融合机制 | 双向箭头+连接标签框+装饰光环 |
+| 层次架构模型图 | 实践模型/体系架构 | 多层结构+金色连线+虚线反馈 |
+| 三柱保障体系图 | 保障机制/制度体系 | 色条强调+标题头+详情列表 |
+| 范式对比表图 | 新旧对比/模式转型 | 多维度横向对比+箭头+交替行背景 |
+| 实践时间线图 | 发展历程/里程碑 | 箭头末端+彩色节点+事件详情 |
+
+**内置资源：**
+- `scripts/generate_charts.py` — matplotlib 学术图表生成模板
+- `scripts/gen_ppt_template.js` — PptxGenJS PPT 生成模板（含辅助函数）
+- `scripts/visual_qa.py` — Visual QA 验证脚本（python-pptx 检测遮挡/溢出）
+- `references/layout_templates.md` — 10 种学术 PPT 布局模板参考
+- `references/pitfalls.md` — 18 条踩坑经验（中文引号/字体/路径等）
+
+**技术栈：** PptxGenJS + matplotlib + python-pptx
+
+---
+
+### 7. 技能备份同步
 **`backup-skills-to-github`**
 
 将原创技能通过 GitHub REST API 自动上传到本仓库进行版本管理。**采用增量 README 更新机制**——每次只添加新技能条目，已有内容和手动撰写的说明完全保留。
@@ -182,11 +224,12 @@ git clone https://github.com/FooFieYoon/scholar-forge.git ~/scholar-forge/
 
 ### 跨平台迁移注意事项
 
-部分技能包含 Python 脚本（如 `paperyy-aigc-rewrite/scripts/rewrite_docx.py`），迁移到其他平台时需：
+部分技能包含 Python/Node.js 脚本，迁移到其他平台时需：
 
 1. 复制完整的 skill 目录（包含 `scripts/`、`templates/`、`references/` 子目录）
-2. 确保目标环境已安装 Python 3.x 及所需依赖
-3. 各技能的具体依赖见对应 `SKILL.md` 中的工具速查表
+2. 确保目标环境已安装 Python 3.x 及所需依赖（`python-docx`、`matplotlib` 等）
+3. PPT 生成技能需额外安装 Node.js 及 `pptxgenjs` 依赖
+4. 各技能的具体依赖见对应 `SKILL.md` 中的工具速查表
 
 详细配置指南参见 [`docs/tools-guide.md`](docs/tools-guide.md)。
 
@@ -196,8 +239,37 @@ git clone https://github.com/FooFieYoon/scholar-forge.git ~/scholar-forge/
 
 - **语言**：所有技能以简体中文为核心工作语言
 - **格式**：SKILL.md（Markdown + YAML frontmatter）
-- **脚本依赖**：Python 3.x（部分技能需要 `python-docx` 等库）
-- **文档输出**：.docx（Word）、.txt、.md
+- **脚本依赖**：Python 3.x + Node.js 22.x（部分技能需要 `python-docx`、`matplotlib`、`pptxgenjs` 等库）
+- **文档输出**：.docx（Word）、.pptx（PowerPoint）、.png（图表）、.txt、.md
+
+---
+
+## 更新日志
+
+### 2026-06-02
+- ✨ 新增 `academic-ppt-generator` 学术汇报PPT生成器
+  - 6种学术级图表类型（matplotlib 300DPI）
+  - 10种多样化布局模板
+  - Visual QA 自动验证
+  - 18条踩坑经验文档
+  - 完整的 PptxGenJS + python-pptx 脚本模板
+
+### 2026-05-30
+- 🔧 新增 `backup-skills-to-github` 技能备份同步工具
+
+### 2026-05-28
+- 🔧 新增 `project-softcopyright-generator` 软著材料生成器
+
+### 2026-05-25
+- 🔧 新增 `paperyy-aigc-rewrite` AIGC 检测降重改写
+
+### 2026-05-20
+- 🔧 新增 `edu-research-paper` 教学科研论文撰写辅助
+
+### 2026-05-15
+- 🎉 初始版本发布
+- 🔧 新增 `academic-conference-paper-writer` 学术年会论文写作助手
+- 🔧 新增 `academic-paper-writer` 通用学术论文写作助手
 
 ---
 
@@ -221,9 +293,3 @@ git clone https://github.com/FooFieYoon/scholar-forge.git ~/scholar-forge/
 ---
 
 *Made with ❤️ by Yin*
-
-## 包含的 Skills
-
-| Skill 名称 | 功能说明 |
-|---|---|
-| `academic-ppt-generator` | > |
