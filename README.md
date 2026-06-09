@@ -3,7 +3,7 @@
 > AI 驱动的学术写作与知识产权工具集 —— 从选题到成稿，从代码到软著，从讲稿到汇报。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-7-blue)](skills/)
+[![Skills](https://img.shields.io/badge/Skills-10-blue)](skills/)
 
 ---
 
@@ -33,6 +33,12 @@ scholar-forge/
 │   ├── project-softcopyright-generator/        # 软著材料生成
 │   │   ├── templates/                         #   6 个流水线模板脚本
 │   │   └── references/                        #   申请字段规范+设计规范
+│   ├── image-knowledge-extractor/               # 图片知识提取（通用型）
+│   │   └── references/                          #   多平台API参考
+│   ├── image-knowledge-ocr/                     # 图片知识OCR（IMA专用）
+│   │   └── references/                          #   IMA OpenAPI参考
+│   ├── image-knowledge-ocr-ima/                 # 图片知识OCR（IMA专用-备份）
+│   │   └── references/                          #   IMA OpenAPI参考
 │   └── backup-skills-to-github/               # 技能备份同步
 │       └── scripts/                           #   扫描/上传/整理脚本
 └── docs/                                      # 文档目录
@@ -273,6 +279,56 @@ git clone https://github.com/FooFieYoon/scholar-forge.git ~/scholar-forge/
 
 ---
 
+
+---
+
+### 16. 图片知识提取（通用型）
+**`image-knowledge-extractor`**
+
+从任意图片文件夹中批量提取文字（OCR）、按用户指定类别或标签整理、输出为Markdown报告或上传至指定笔记/知识库平台的全流程自动化技能。支持HEIC/JPG/PNG/WEBP/GIF/BMP等格式。平台包括：IMA知识库、Notion、Obsidian目录、纯Markdown文件输出。
+
+| 触发关键词 | 适用场景 |
+|-----------|---------|
+| 整理图片知识、图片OCR、截图整理、知识提取、批量提取图片文字、截图转文字、从图片提取内容 | 批量处理手机截图中的知识内容、OCR识别文档/照片文字、将提取内容分类整理为结构化笔记、上传至IMA/Notion/Obsidian等平台 |
+
+**核心能力：**
+- 多进程OCR加速 — RapidOCR引擎支持中文，4进程处理171张图片仅需25分钟
+- 多平台输出 — IMA知识库 / Notion / Obsidian / 纯Markdown
+- 4种分类模式 — 自动分类(11类别) / 手动指定 / 标签模式 / 不分
+- HEIC格式支持 — 完整读取iPhone截图
+- 断点续跑 — checkpoint机制，支持中断后继续
+
+---
+
+### 17. 图片知识OCR（IMA专用）
+**`image-knowledge-ocr`**
+
+从图片文件夹中批量提取文字（OCR）、按内容分类整理知识、上传至IMA知识库的全流程自动化技能。适用于处理手机截图/照片中的知识内容，批量OCR识别图片文字，将OCR结果分类整理为知识笔记，上传笔记至IMA"日常"知识库。
+
+| 触发关键词 | 适用场景 |
+|-----------|---------|
+| 整理图片知识、图片OCR、截图整理、知识提取、IMA上传 | 处理手机截图中的知识内容、批量OCR识别图片文字、将OCR结果分类整理为知识笔记、上传笔记至IMA"日常"知识库 |
+
+**核心能力：**
+- 9大知识类别自动分类 — AI/编程/科研/开源/论文/职场/网络/3D设计/视频
+- IMA知识库集成 — import_doc API 创建详细笔记（3000-5000字/篇）
+- add_knowledge 知识库关联 — base64格式KB ID + note_info 格式
+- 常见问题解决 — BOM清除、note_id不一致、认证失败
+
+---
+
+### 18. 图片知识OCR（IMA专用-备份）
+**`image-knowledge-ocr-ima`**
+
+图片知识OCR提取与IMA上传的备份版本，与 `image-knowledge-ocr` 功能完全一致，为版本管理保留。
+
+| 触发关键词 | 适用场景 |
+|-----------|---------|
+| 整理图片知识、图片OCR、截图整理、知识提取、IMA上传 | 同 image-knowledge-ocr |
+
+**核心能力：** 同 `image-knowledge-ocr`
+
+---
 ## 维护者
 
 **Yin** — 所有技能由 AI Agent 创建，Yin 负责维护与迭代。
