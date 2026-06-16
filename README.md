@@ -1227,3 +1227,9 @@ If you use ScholarForge in your research or project, please cite:
 Made with ❤️ by [Yin](https://github.com/FooFieYoon)
 
 </div>
+
+## 包含的 Skills
+
+| Skill 名称 | 功能说明 |
+|---|---|
+| `homework-grader` | > |
