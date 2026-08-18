@@ -8,7 +8,7 @@
 [![GitHub Commits](https://img.shields.io/github/commit-activity/m/FooFieYoon/scholar-forge)](https://github.com/FooFieYoon/scholar-forge)
 [![Python](https://img.shields.io/badge/Python-91%25-blue)](https://www.python.org/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-9%25-yellow)](https://www.javascript.com/)
-[![Skills](https://img.shields.io/badge/Skills-10-blue)](skills/)
+[![Skills](https://img.shields.io/badge/Skills-13-blue)](skills/)
 
 ---
 
@@ -309,6 +309,81 @@
 
 ---
 
+### 📝 作业批改系列
+
+#### 11️⃣ 通用作业批改系统
+**`homework-grader`**
+
+通用高校课程作业批改系统。支持批量文档提取（.doc/.docx/.pdf）、源代码分析（.py/.ipynb）、基于评分标准的正态分布打分，并输出 Excel 报表。评分维度与扣分规则从用户上传的考核方案中**动态提取**，不硬编码，可适配任意课程。
+
+| 触发关键词 | 适用场景 |
+|-----------|---------|
+| 批改作业、评分、grade homework、期末考试、作业批改、评分量化表、考核方案、期末考核 | 需要提供学生提交的报告/代码目录及考核方案文档，进行标准化批量批改 |
+
+**核心能力：**
+- 📂 **批量文档提取** —— 支持 .doc/.docx/.pdf 批量提取，PowerShell Word COM 处理旧版 .doc
+- 📝 **评分标准动态解析** —— 从考核方案文档自动提取评分维度、分值、扣分规则、正态分布要求
+- 📊 **正态分布打分** —— 按优秀/良好/中等/及格比例自动分配，支持分数修正与二次审查
+- 📋 **源代码分析** —— 支持 .py/.ipynb 等代码文件解析与评分
+- 📑 **Excel 报表输出** —— 输出带分数、正负分对照、字数统计、优缺点评述的 Excel 报表
+
+**内置脚本：**
+- `scripts/extract_reports.py` — 文档提取脚本
+- `scripts/generate_excel.py` — Excel 报表生成
+- `references/grading_criteria.md` — 评分标准参考
+
+---
+
+### 🎨 多模态生成系列
+
+#### 12️⃣ 日日新图像生成
+**`sensenova-image`**
+
+使用商汤日日新 `sensenova-u1-fast` 模型生成图片，支持文生图，2K 高分辨率，擅长信息图/海报/图表/摄影级写实。纯生图模型，只能调用 `/v1/images/generations` 端点，**不能作为对话模型**使用。
+
+| 触发关键词 | 适用场景 |
+|-----------|---------|
+| 日日新生图、SenseNova 生图、U1 生图、生成信息图、生成海报、中文图表、图像生成 | 需要生成高质量中文信息图、知识图解、海报或写实照片 |
+
+**核心能力：**
+- 🖼️ **文生图** —— 2K 高分辨率，13 种合法尺寸（竖版 2:3/3:4/4:5/9:16、横版 3:2/4:3/16:9、方形 1:1、超宽/超高/横幅）
+- 📋 **信息图专长** —— 擅长中文信息图、知识图解、海报、图表类图片
+- ⚠️ **端点限制** —— 仅支持 `/v1/images/generations`，无法配置为对话模型
+- 🔄 **自动重试** —— 内置 429 限流指数退避重试（5 次），避免免费额度下频繁请求失败
+- 💾 **自动下载** —— 返回 URL 有效期约 24 小时，脚本自动下载到本地
+
+**内置脚本：**
+- `scripts/gen_image.py` — 文生图脚本，支持 `--prompt`、`--size`、`--n`、`--out`、`--no-watermark`
+
+**技术栈：** Python（urllib 标准库，无额外依赖）
+
+---
+
+#### 13️⃣ Agnes AI 图片与视频生成
+**`agnes-image-video`**
+
+Agnes AI 图片生成和视频生成能力，支持文生图、图生图、文生视频、图生视频。API 兼容 OpenAI 格式，使用 Bearer Token 认证。
+
+| 触发关键词 | 适用场景 |
+|-----------|---------|
+| 生成图片、生成视频、AI绘图、AI视频、制作图片、制作视频、Agnes 生图、Agnes 视频 | 需要生成高质量图片或短视频 |
+
+**核心能力：**
+- 🎨 **文生图** —— 支持 1K/2K/3K/4K 分辨率，8 种宽高比（16:9/9:16/1:1/4:3/3:4/2:3/3:2/21:9）
+- 🔄 **图生图** —— 基于输入图片进行风格转换或局部修改
+- 🎬 **文生视频** —— 支持 81~441 帧（约 3~18 秒），24fps，异步轮询机制
+- 🎞️ **图生视频** —— 基于输入图片生成动态视频，支持关键帧控制
+- 📋 **双模型支持** —— 图像模型 `agnes-image-2.1-flash` + 视频模型 `agnes-video-v2.0`
+
+**内置脚本：**
+- `scripts/agnes-ai.py` — 图像/视频生成脚本，支持 `image` / `video` / `video-query` 子命令
+- `references/image_api.md` — 图像 API 参考
+- `references/video_api.md` — 视频 API 参考
+
+**技术栈：** Python（仅依赖标准库）+ Agnes AI API（OpenAI 兼容格式）
+
+---
+
 ## 安装使用
 
 ### 🚀 快速开始
@@ -482,7 +557,7 @@ pptxgenjs>=3.12.0      # PPT 生成
 
 ```
 scholar-forge/
-├── skills/                                   # 技能包目录
+├── skills/                                   # 技能包目录（13 个）
 │   ├── academic-conference-paper-writer/      # 学术年会论文写作
 │   ├── academic-paper-writer/                 # 通用学术论文写作
 │   │   └── references/                        #   结构/引文/风格参考
@@ -490,6 +565,14 @@ scholar-forge/
 │   │   ├── scripts/                           #   图表/PPT/QA脚本
 │   │   └── references/                        #   布局模板+踩坑经验
 │   ├── edu-research-paper/                    # 教学科研论文写作
+│   ├── homework-grader/                       # 通用作业批改系统
+│   │   ├── references/                        #   评分标准参考
+│   │   └── scripts/                           #   文档提取/Excel报表脚本
+│   ├── sensenova-image/                       # 日日新图像生成
+│   │   └── scripts/                           #   文生图脚本
+│   ├── agnes-image-video/                     # Agnes AI 图片与视频生成
+│   │   ├── references/                        #   图像/视频API参考
+│   │   └── scripts/                           #   生成脚本
 │   ├── paperyy-aigc-rewrite/                  # AIGC 检测降重改写
 │   │   ├── references/                        #   检测规则+改写范例
 │   │   └── scripts/                           #   docx 段落替换脚本
@@ -514,6 +597,13 @@ scholar-forge/
 ---
 
 ## 更新日志
+
+### 📅 2026-08-18
+- ✨ 新增 `homework-grader` 通用作业批改系统
+- ✨ 新增 `sensenova-image` 日日新图像生成
+- ✨ 新增 `agnes-image-video` Agnes AI 图片与视频生成
+- 🐛 修复 README 底部错误表格和遗漏条目
+- 🔧 修复 `sensenova-image` 端点限制说明（仅支持 images/generations，非对话模型）
 
 ### 📅 2026-06-08
 - ✨ 更新 `image-knowledge-extractor` 图片知识提取（通用型）
@@ -941,6 +1031,75 @@ Automatically upload original skills to this repository via GitHub REST API for 
 
 ---
 
+### 📝 Homework Grading Series
+
+#### 11️⃣ Generic Homework Grader
+**`homework-grader`**
+
+A generic multi-step homework grading system for university courses. Supports batch document extraction (.doc/.docx/.pdf), source code analysis (.py/.ipynb), rubric-based scoring with normal distribution curves, and Excel report generation. Scoring criteria and deduction rules are dynamically derived from course-specific grading materials uploaded by the user — not hardcoded for any specific course.
+
+**Trigger Keywords**: Grade homework, homework grading, assessment, rubric, final exam, scoring table
+
+**Core Capabilities:**
+- 📂 **Batch Document Extraction** —— Supports .doc/.docx/.pdf, PowerShell Word COM for legacy .doc
+- 📝 **Dynamic Rubric Parsing** —— Automatically extracts scoring dimensions, point values, deduction rules, distribution requirements
+- 📊 **Normal Distribution Scoring** —— Auto-distributes grades per required ratios, supports score correction and review
+- 📋 **Source Code Analysis** —— Parses .py/.ipynb code files for scoring
+- 📑 **Excel Report Output** —— Generates reports with scores, pros/cons, word counts, correction items
+
+**Built-in Resources:**
+- `scripts/extract_reports.py` — Document extraction script
+- `scripts/generate_excel.py` — Excel report generator
+- `references/grading_criteria.md` — Grading criteria reference
+
+---
+
+### 🎨 Multi-Modal Generation Series
+
+#### 12️⃣ SenseNova Image Generation
+**`sensenova-image`**
+
+Generate images using SenseTime's `sensenova-u1-fast` model (text-to-image, 2K resolution). Specializes in infographics, posters, charts, and photorealistic images. Pure image generation model — only supports `/v1/images/generations`, **cannot be used as a chat model**.
+
+**Trigger Keywords**: SenseNova image, U1 image, infographic, poster, chart generation, Chinese image generation
+
+**Core Capabilities:**
+- 🖼️ **Text-to-Image** —— 2K resolution, 13 valid sizes (2:3/3:4/4:5/9:16 vertical, 3:2/4:3/16:9 horizontal, 1:1 square, ultra-wide/ultra-tall/banner)
+- 📋 **Infographic Specialty** —— Excels at Chinese infographics, knowledge diagrams, posters, charts
+- ⚠️ **Endpoint Limit** —— Only supports `/v1/images/generations`, cannot be configured as a chat model
+- 🔄 **Auto Retry** —— Built-in 429 exponential backoff (5 retries)
+- 💾 **Auto Download** —— Returned URLs expire in ~24h, script auto-downloads locally
+
+**Built-in Resources:**
+- `scripts/gen_image.py` — Image generation script with `--prompt`, `--size`, `--n`, `--out`, `--no-watermark`
+
+**Tech Stack:** Python (urllib standard library, no extra dependencies)
+
+---
+
+#### 13️⃣ Agnes AI Image & Video Generation
+**`agnes-image-video`**
+
+Agnes AI image and video generation. Supports text-to-image, image-to-image, text-to-video, and image-to-video. API is OpenAI-compatible, using Bearer Token authentication.
+
+**Trigger Keywords**: Generate image, generate video, AI drawing, AI video, create image, create video
+
+**Core Capabilities:**
+- 🎨 **Text-to-Image** —— 1K/2K/3K/4K resolution, 8 aspect ratios (16:9/9:16/1:1/4:3/3:4/2:3/3:2/21:9)
+- 🔄 **Image-to-Image** —— Style transfer or local modification based on input image
+- 🎬 **Text-to-Video** —— 81~441 frames (~3~18 seconds), 24fps, async polling mechanism
+- 🎞️ **Image-to-Video** —— Dynamic video from input image, supports keyframe control
+- 📋 **Dual Model** —— Image model `agnes-image-2.1-flash` + Video model `agnes-video-v2.0`
+
+**Built-in Resources:**
+- `scripts/agnes-ai.py` — Image/video generation script with `image` / `video` / `video-query` subcommands
+- `references/image_api.md` — Image API reference
+- `references/video_api.md` — Video API reference
+
+**Tech Stack:** Python (standard library only) + Agnes AI API (OpenAI-compatible format)
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -1099,7 +1258,7 @@ pptxgenjs>=3.12.0      # PPT generation
 
 ```
 scholar-forge/
-├── skills/                                   # Skill packages directory
+├── skills/                                   # Skill packages directory (13 skills)
 │   ├── academic-conference-paper-writer/      # Academic conference paper writing
 │   ├── academic-paper-writer/                 # General academic paper writing
 │   │   └── references/                        #   Structure/citation/style references
@@ -1107,6 +1266,14 @@ scholar-forge/
 │   │   ├── scripts/                           #   Chart/PPT/QA scripts
 │   │   └── references/                        #   Layout templates + Pitfalls
 │   ├── edu-research-paper/                    # Educational research paper
+│   ├── homework-grader/                       # Generic homework grading system
+│   │   ├── references/                        #   Grading criteria reference
+│   │   └── scripts/                           #   Document extraction / Excel report scripts
+│   ├── sensenova-image/                       # SenseNova image generation
+│   │   └── scripts/                           #   Image generation script
+│   ├── agnes-image-video/                     # Agnes AI image & video generation
+│   │   ├── references/                        #   Image/Video API references
+│   │   └── scripts/                           #   Generation script
 │   ├── paperyy-aigc-rewrite/                  # AIGC detection rewrite
 │   │   ├── references/                        #   Detection rules + Rewrite examples
 │   │   └── scripts/                           #   docx paragraph replacement script
@@ -1227,11 +1394,3 @@ If you use ScholarForge in your research or project, please cite:
 Made with ❤️ by [Yin](https://github.com/FooFieYoon)
 
 </div>
-
-## 包含的 Skills
-
-| Skill 名称 | 功能说明 |
-|---|---|
-| `homework-grader` | > |
-| `sensenova-image` | 使用商汤日日新 SenseNova U1 Fast 模型生成图片（文生图，2K 高分辨率，擅长信息图/海报/图表）。当用户要求用日日新/SenseNova/U1 生图，或需要生成中文信息图、知识图解、海报、图表类图片时触发。注意 U1 Fast 是纯生图模型，不能作为对话模型使用。 |
-| `agnes-image-video` | Agnes AI 图片生成和视频生成能力。支持文生图、图生图、文生视频、图生视频。当用户请求生成图片、生成视频、AI绘图、AI视频、制作图片、制作视频时触发此技能。 |
