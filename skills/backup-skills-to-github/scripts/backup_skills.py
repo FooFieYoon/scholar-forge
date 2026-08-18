@@ -3,7 +3,10 @@
 Backup original skills to GitHub ScholarForge via REST API.
 Avoids git clone/push on Windows (schannel / sandbox issues).
 
-README 更新策略：增量模式（每次只添加新 skill 条目，保留已有内容不变）。
+README 更新策略：
+  - 只在文件末尾的 "## 包含的 Skills" 汇总表格中增量追加新 skill
+  - 扫描所有格式识别已有 skill（表格行 + 加粗标题行）
+  - 不影响正文内容，不重复创建表格
 
 Usage:
     python3 backup_skills.py <owner>/<repo> [--dir <subdir>] [--all] [--optimize]
@@ -81,7 +84,7 @@ def scan_original_skills():
                         v = line[idx + 1:].strip().strip("\"'")
                         fm[k] = v
                 ac = fm.get("agent_created", "")
-                if str(ac).lower() in ("true", "true"):
+                if str(ac).lower() in ("true",):
                     rel = os.path.relpath(root, SKILLS_DIR)
                     results.append(rel)
             except Exception:
@@ -140,63 +143,72 @@ def get_skill_description(skill_name):
         with open(skill_md_path, "r", encoding="utf-8") as f:
             content = f.read()
         m = re.match(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
-        if m:
-            fm = {}
-            for line in m.group(1).splitlines():
-                if ":" in line:
-                    idx = line.index(":")
-                    fm[line[:idx].strip()] = line[idx+1:].strip().strip("\"'")
-            return fm.get("description", "")
+        if not m:
+            return ""
+        lines = m.group(1).splitlines()
+        fm = {}
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            if ":" in line:
+                idx = line.index(":")
+                k = line[:idx].strip()
+                v = line[idx + 1:].strip().strip("\"'")
+                # Handle YAML folded block scalar (>)
+                if v == ">":
+                    folded = []
+                    i += 1
+                    while i < len(lines):
+                        ln = lines[i]
+                        # Indented lines are part of the block
+                        if ln.startswith("  ") or ln.startswith("    "):
+                            folded.append(ln.strip())
+                        elif ln.strip() == "":
+                            folded.append("")
+                        else:
+                            break
+                        i += 1
+                    v = " ".join(folded)
+                fm[k] = v
+            i += 1
+        desc = fm.get("description", "")
+        if isinstance(desc, str):
+            return desc
+        return ""
     except Exception:
         pass
     return ""
 
 
-def build_initial_readme(skills):
-    """Build a fresh README from scratch (used only when README doesn't exist yet)."""
-    rows = []
-    for s in sorted(skills):
-        desc = get_skill_description(s)
-        rows.append(f"| `{s}` | {desc} |")
-    skills_table = "\n".join(rows)
-
-    return f"""# ScholarForge / 学术匠心工坊
-
-> **Author: Yin**
-> AI 驱动的学术写作与知识产权工具集。
-
----
-
-## 包含的 Skills
-
-| Skill 名称 | 功能说明 |
-|---|---|
-{skills_table}
-
----
-
-> 本 README 由备份脚本自动生成。完整文档和详细使用说明请参阅仓库主 README。
-> 仓库地址：[github.com/FooFieYoon/scholar-forge](https://github.com/FooFieYoon/scholar-forge)
-
----
-*By Yin*
-"""
-
-
 def parse_existing_skills_from_readme(readme_text):
-    """Parse skill names already listed in the README skills table.
-    Returns set of skill names found."""
+    """Parse skill names from ALL formats in the README.
+
+    Matches:
+      - Table rows: | `skill-name` | ...
+      - Bold titles: **`skill-name`** (used in the main skill sections)
+    """
     existing = set()
     for line in readme_text.splitlines():
+        # Format 1: markdown table row | `xxx` |
         m = re.match(r'^\|\s*`([^`]+)`\s*\|', line)
+        if m:
+            existing.add(m.group(1))
+        # Format 2: bold inline code **`xxx`** (e.g. **`sensenova-image`**)
+        m = re.search(r'\*\*`([^`]+)`\*\*', line)
         if m:
             existing.add(m.group(1))
     return existing
 
 
 def generate_readme_incremental(existing_readme, new_skills):
-    """Incrementally add new skill entries to existing README.
-    Only adds rows for skills NOT already in the table. Preserves all other content."""
+    """Incrementally add new skill entries to the '## 包含的 Skills' table at EOF.
+
+    Rules:
+      1. Scan ALL formats to detect existing skills (prevents duplicates)
+      2. Only append to the LAST '## 包含的 Skills' section at file end
+      3. If no section exists, create one at EOF
+      4. Never insert into main content — avoids breaking existing structure
+    """
     existing_skills = parse_existing_skills_from_readme(existing_readme)
     truly_new = sorted([s for s in new_skills if s not in existing_skills])
 
@@ -204,48 +216,50 @@ def generate_readme_incremental(existing_readme, new_skills):
         return None  # Nothing to add
 
     # Build new table rows
-    new_rows = []
-    for s in truly_new:
-        desc = get_skill_description(s)
-        new_rows.append(f"| `{s}` | {desc} |")
+    new_rows = [f"| `{s}` | {get_skill_description(s)} |" for s in truly_new]
 
-    # Find the last table row position (after the header row)
     lines = existing_readme.splitlines()
-    last_skill_row = -1
-    for i, line in enumerate(lines):
-        if re.match(r'^\|\s*`[^`]+`\s*\|', line):
-            last_skill_row = i
 
-    if last_skill_row >= 0:
-        # Insert new rows after the last existing skill row
-        lines = lines[:last_skill_row + 1] + new_rows + lines[last_skill_row + 1:]
-    else:
-        # No skill table found — append one before the footer
-        footer_marker = "> 本 README 由备份脚本自动生成"
-        inserted = False
-        for i, line in enumerate(lines):
-            if footer_marker in line:
-                # Insert skills table section before footer
-                table_section = [
-                    "",
-                    "## 包含的 Skills",
-                    "",
-                    "| Skill 名称 | 功能说明 |",
-                    "|---|---|",
-                ] + new_rows + [""]
-                lines = lines[:i] + table_section + lines[i:]
-                inserted = True
+    # Find the LAST occurrence of "## 包含的 Skills" section
+    section_idx = None
+    for i in range(len(lines) - 1, -1, -1):
+        if re.match(r'^##\s+包含的\s+Skills\s*$', lines[i]):
+            section_idx = i
+            break
+
+    if section_idx is not None:
+        # Append new rows to the table in this section
+        # Find the last existing table row after section_idx
+        last_row = section_idx
+        for i in range(section_idx + 1, len(lines)):
+            if re.match(r'^\|\s*`[^`]+`\s*\|', lines[i]):
+                last_row = i
+            elif re.match(r'^##\s+', lines[i]):
+                # Hit next section header — stop
                 break
-        if not inserted:
-            # Just append at end
+
+        # If last_row is still section_idx (no table rows found), create table
+        if last_row == section_idx:
             table_section = [
-                "",
-                "## 包含的 Skills",
                 "",
                 "| Skill 名称 | 功能说明 |",
                 "|---|---|",
             ] + new_rows + [""]
-            lines = lines + table_section
+            lines = lines[:section_idx + 1] + table_section + lines[section_idx + 1:]
+        else:
+            lines = lines[:last_row + 1] + new_rows + lines[last_row + 1:]
+    else:
+        # No section found — append at end
+        table_section = [
+            "",
+            "---",
+            "",
+            "## 包含的 Skills",
+            "",
+            "| Skill 名称 | 功能说明 |",
+            "|---|---|",
+        ] + new_rows + [""]
+        lines = lines + table_section
 
     new_readme = "\n".join(lines)
     print(f"  README: adding {len(truly_new)} new skill(s): {', '.join(truly_new)}")
@@ -259,8 +273,23 @@ def upload_readme_incremental(repo, headers, skills):
 
     if err and err.get("message", "").startswith("Not Found"):
         # README doesn't exist — create from scratch
-        readme_content = build_initial_readme(skills)
-        data = {"message": "Add README.md", "content": base64.b64encode(readme_content.encode("utf-8")).decode("utf-8")}
+        rows = []
+        for s in sorted(skills):
+            desc = get_skill_description(s)
+            rows.append(f"| `{s}` | {desc} |")
+        readme_content = (
+            "# ScholarForge / 学术匠心工坊\n\n"
+            "> **Author: Yin**\n"
+            "> AI 驱动的学术写作与知识产权工具集。\n\n"
+            "---\n\n"
+            "## 包含的 Skills\n\n"
+            "| Skill 名称 | 功能说明 |\n"
+            "|---|---|\n"
+            + "\n".join(rows)
+            + "\n"
+        )
+        data = {"message": "Add README.md",
+                "content": base64.b64encode(readme_content.encode("utf-8")).decode("utf-8")}
         _, put_err = api_request(url, "PUT", data=data, headers=headers)
         if put_err:
             print(f"  README create FAIL: {put_err.get('message')}")
