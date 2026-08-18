@@ -137,36 +137,73 @@ def build_initial_readme(skills):
 
 
 def parse_existing_skills_from_readme(readme_text):
-    """Parse skill names already listed in the README table."""
+    """Parse skill names from ALL formats in the README.
+
+    Matches:
+      - Table rows: | `skill-name` | ...
+      - Bold titles: **`skill-name`**
+    """
     existing = set()
     for line in readme_text.splitlines():
         m = re.match(r'^\|\s*`([^`]+)`\s*\|', line)
+        if m:
+            existing.add(m.group(1))
+        m = re.search(r'\*\*`([^`]+)`\*\*', line)
         if m:
             existing.add(m.group(1))
     return existing
 
 
 def generate_readme_incremental(existing_readme, new_skills):
-    """Incrementally add new skill entries. Returns None if no changes needed."""
+    """Incrementally add new skill entries to the '## 包含的 Skills' table at EOF.
+
+    Rules:
+      1. Scan ALL formats to detect existing skills (prevents duplicates)
+      2. Only append to the LAST '## 包含的 Skills' section at file end
+      3. If no section exists, create one at EOF
+      4. Never insert into main content
+    """
     existing_skills = parse_existing_skills_from_readme(existing_readme)
     truly_new = sorted([s for s in new_skills if s not in existing_skills])
 
     if not truly_new:
         return None
 
+    # Build new table rows (optimized layout uses "类型" column)
     new_rows = [f"| `{s}` | 原创 Skill |" for s in truly_new]
 
     lines = existing_readme.splitlines()
-    last_skill_row = -1
-    for i, line in enumerate(lines):
-        if re.match(r'^\|\s*`[^`]+`\s*\|', line):
-            last_skill_row = i
 
-    if last_skill_row >= 0:
-        lines = lines[:last_skill_row + 1] + new_rows + lines[last_skill_row + 1:]
+    # Find the LAST occurrence of "## 包含的 Skills" section
+    section_idx = None
+    for i in range(len(lines) - 1, -1, -1):
+        if re.match(r'^##\s+包含的\s+Skills\s*$', lines[i]):
+            section_idx = i
+            break
+
+    if section_idx is not None:
+        # Find the last existing table row after section_idx
+        last_row = section_idx
+        for i in range(section_idx + 1, len(lines)):
+            if re.match(r'^\|\s*`[^`]+`\s*\|', lines[i]):
+                last_row = i
+            elif re.match(r'^##\s+', lines[i]):
+                break
+
+        if last_row == section_idx:
+            table_section = [
+                "",
+                "| Skill 名称 | 类型 |",
+                "|---|---|",
+            ] + new_rows + [""]
+            lines = lines[:section_idx + 1] + table_section + lines[section_idx + 1:]
+        else:
+            lines = lines[:last_row + 1] + new_rows + lines[last_row + 1:]
     else:
-        # Append table at end
+        # Append at end
         table_section = [
+            "",
+            "---",
             "",
             "## 包含的 Skills",
             "",
