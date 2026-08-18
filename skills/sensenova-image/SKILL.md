@@ -48,9 +48,11 @@ C:/Users/foofi/.workbuddy/binaries/python/envs/default/Scripts/python.exe \
 
 ```
 POST https://token.sensenova.cn/v1/images/generations
-Authorization: Bearer sk-B7flAfr3sCoFSY8U8HPscmF9pPQNC3of
+Authorization: Bearer $SENSENOVA_API_KEY
 {"model":"sensenova-u1-fast","prompt":"...","n":1,"size":"2048x2048","watermark":true}
 ```
+
+**重要**：API Key 通过环境变量 `SENSENOVA_API_KEY` 读取，脚本不会硬编码密钥。首次使用请在 `~/.codex/sensenova.env` 或系统环境变量中配置。
 
 返回 `data[].url`，**URL 有效期约 24 小时**，必须立即下载到本地再交付给用户。
 
