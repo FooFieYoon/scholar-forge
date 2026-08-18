@@ -1234,3 +1234,4 @@ Made with ❤️ by [Yin](https://github.com/FooFieYoon)
 |---|---|
 | `homework-grader` | > |
 | `sensenova-image` | 使用商汤日日新 SenseNova U1 Fast 模型生成图片（文生图，2K 高分辨率，擅长信息图/海报/图表）。当用户要求用日日新/SenseNova/U1 生图，或需要生成中文信息图、知识图解、海报、图表类图片时触发。注意 U1 Fast 是纯生图模型，不能作为对话模型使用。 |
+| `agnes-image-video` | Agnes AI 图片生成和视频生成能力。支持文生图、图生图、文生视频、图生视频。当用户请求生成图片、生成视频、AI绘图、AI视频、制作图片、制作视频时触发此技能。 |
