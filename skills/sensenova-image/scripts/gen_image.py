@@ -10,7 +10,10 @@ import urllib.request
 import urllib.error
 
 API = "https://token.sensenova.cn/v1/images/generations"
-KEY = os.environ.get("SENSENOVA_API_KEY", "sk-B7flAfr3sCoFSY8U8HPscmF9pPQNC3of")
+KEY = os.environ.get("SENSENOVA_API_KEY")
+if not KEY:
+    print("[ERR] 未设置 SENSENOVA_API_KEY 环境变量。请在 ~/.codex/sensenova.env 或系统环境变量中配置。", file=sys.stderr)
+    sys.exit(1)
 VALID_SIZES = {
     "1664x2496", "2496x1664", "1760x2368", "2368x1760",
     "1824x2272", "2272x1824", "2048x2048", "2752x1536",
