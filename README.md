@@ -1,14 +1,14 @@
 # ScholarForge / 学术匠心工坊
 
 > **AI 驱动的学术写作与知识产权工具集**  
-> 从选题到成稿，从代码到软著，从讲稿到汇报。
+> 从选题到成稿，从代码到软著，从公文排版到视频课件复刻。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/FooFieYoon/scholar-forge?style=social)](https://github.com/FooFieYoon/scholar-forge)
 [![GitHub Commits](https://img.shields.io/github/commit-activity/m/FooFieYoon/scholar-forge)](https://github.com/FooFieYoon/scholar-forge)
 [![Python](https://img.shields.io/badge/Python-91%25-blue)](https://www.python.org/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-9%25-yellow)](https://www.javascript.com/)
-[![Skills](https://img.shields.io/badge/Skills-13-blue)](skills/)
+[![Skills](https://img.shields.io/badge/Skills-17-blue)](skills/)
 
 ---
 
@@ -36,7 +36,9 @@
 - 🎨 **学术汇报 PPT 制作**（自动化图表生成 + 专业排版）
 - 📄 **软件著作权登记材料自动生成**（代码分析 + 文档输出）
 - 🖼️ **图片知识提取与 OCR**（批量处理 + 智能分类）
-- 🔧 **技能备份与同步**（GitHub 自动化管理）
+- 📄 **Word 文档处理**（公文格式重排 + 保持原格式定向修订）
+- 🎬 **视频课件复刻**（视频切页 + OCR 回验 + 可编辑 PPTX 重建）
+- 🔧 **技能安装、审计、备份与同步**（GitHub 自动化管理）
 
 所有技能均为 **Markdown 格式的指令文件（SKILL.md）**，可导入到支持自定义指令的主流 AI 编程平台使用。
 
@@ -46,7 +48,7 @@
 |------|------|
 | 🤖 **AI 原生** | 所有技能由 AI Agent 创建，为 AI Agent 优化 |
 | 🔌 **即插即用** | 简洁的 SKILL.md 格式，兼容多平台 |
-| 🔄 **全生命周期** | 覆盖学术研究完整工作流 |
+| 🔄 **全生命周期** | 覆盖学术研究、Office 文档、知识管理与多模态生产 |
 | 🎨 **多模态支持** | 文本、图表、演示文稿、代码文档 |
 | 🌍 **开源共建** | MIT 许可证，社区驱动开发 |
 
@@ -371,9 +373,9 @@ Agnes AI 图片生成和视频生成能力，支持文生图、图生图、文�
 **核心能力：**
 - 🎨 **文生图** —— 支持 1K/2K/3K/4K 分辨率，8 种宽高比（16:9/9:16/1:1/4:3/3:4/2:3/3:2/21:9）
 - 🔄 **图生图** —— 基于输入图片进行风格转换或局部修改
-- 🎬 **文生视频** —— 支持 81~441 帧（约 3~18 秒），24fps，异步轮询机制
-- 🎞️ **图生视频** —— 基于输入图片生成动态视频，支持关键帧控制
-- 📋 **双模型支持** —— 图像模型 `agnes-image-2.1-flash` + 视频模型 `agnes-video-v2.0`
+- 🎬 **文生视频** —— 支持 4–12 秒、固定 720P，异步任务创建与轮询
+- 🎞️ **图生视频** —— 支持 keyframe 首帧/首尾帧控制与 reference 多素材参考模式
+- 📋 **双模型支持** —— 图像模型 `agnes-image-2.5-flash` + 视频模型 `agnes-video-2.5-flash`
 
 **内置脚本：**
 - `scripts/agnes-ai.py` — 图像/视频生成脚本，支持 `image` / `video` / `video-query` 子命令
@@ -381,6 +383,80 @@ Agnes AI 图片生成和视频生成能力，支持文生图、图生图、文�
 - `references/video_api.md` — 视频 API 参考
 
 **技术栈：** Python（仅依赖标准库）+ Agnes AI API（OpenAI 兼容格式）
+
+---
+
+### 📄 Word 文档处理系列
+
+#### 14️⃣ 公文格式全文重排
+**`docx-gongwen-reformat`**
+
+在不改动正文内容的前提下，将既有规划、建议稿、报告、方案或讲话稿统一重排为规范公文版式。
+
+| 触发关键词 | 适用场景 |
+|-----------|---------|
+| 公文格式排版、全文重新排版、统一字体字号、添加页码与首行缩进 | 已有 `.docx` 内容定稿，但页面、标题、正文、表格和页码格式不统一 |
+
+**核心能力：**
+- 📐 **标准版式落地** —— A4、公文页边距、标题层级、正文行距与首行缩进统一
+- 🧭 **按内容角色识别层级** —— 避免仅依赖 Word 样式名造成标题、题注和附录误判
+- 📊 **表格与页脚规范化** —— 表头、字号、跨页重复、PAGE 域页码统一处理
+- ✅ **三级验收** —— 内容零丢失、格式落地、OOXML 结构合规同步校验
+
+---
+
+#### 15️⃣ Word 文档定向修订
+**`docx-surgical-revision`**
+
+依据评审意见或口径更正清单，对既有长篇 `.docx` 做保持原格式的局部修订，并用段落级差异核验防止静默丢字。
+
+| 触发关键词 | 适用场景 |
+|-----------|---------|
+| 按审阅意见修改 Word、改稿另存、补齐表格行、新增附注、更正口径、统一数字 | 文档已完成排版，只允许定点修改内容和结构，不得破坏原版式 |
+
+**核心能力：**
+- 🎯 **文本锚点定位** —— 不依赖易漂移的段落序号，支持段落与表格精确定位
+- 🧬 **克隆同类元素** —— 新增段、表、行继承原文格式与 OOXML 属性
+- 🔍 **逐段 diff 验收** —— 明确列出新增、删除、替换与上下文，避免静默丢失
+- 📎 **可剥离修订痕迹** —— 支持修订记录、来源条目和说明的一键回退
+
+---
+
+### 🔧 技能安装与维护系列
+
+#### 16️⃣ GitHub Skill 批量安装器
+**`github-skill-installer`**
+
+从 GitHub 仓库获取第三方 Skill，完成镜像下载、ZIP 完整性验证、安全审计、整目录安装和安装后校验。
+
+| 触发关键词 | 适用场景 |
+|-----------|---------|
+| 安装 GitHub Skill、批量安装 Skills、从仓库导入技能 | 需要把第三方仓库中的完整 Skill 包安全安装到 WorkBuddy 用户技能目录 |
+
+**核心能力：**
+- 🌐 **受限网络下载** —— 支持镜像获取并规避大仓库随机截断
+- 🛡️ **安装前安全审计** —— 按 P0/P1/P2 检查命令执行、凭据访问和持久化风险
+- 📦 **整目录安装** —— 保留 scripts、references、assets、manifest 等依赖资源
+- ✅ **安装后校验** —— 核对 frontmatter、文件数量、运行依赖和可选 MCP 配置
+
+---
+
+### 🎬 课件复刻系列
+
+#### 17️⃣ 视频课件复刻
+**`video-slide-replica`**
+
+从教学视频、说课录屏或会议回放中识别翻页与版式，将原课件反向还原为可编辑 PPTX。
+
+| 触发关键词 | 适用场景 |
+|-----------|---------|
+| 复刻视频里的 PPT、还原课件、视频转可编辑幻灯片 | 只有视频或录屏，没有原始 PPTX，需要尽量保持视觉一致并恢复可编辑文字 |
+
+**核心能力：**
+- 🎞️ **智能切页** —— 结合逐帧 OCR 与文本相似度识别页面边界
+- 🖼️ **背景净化** —— 去除字幕、水印和可编辑文字，保留装饰与实拍图
+- ✏️ **可编辑重建** —— 按坐标、字号、颜色与换行重绘文本框和原生形状
+- ✅ **OCR 回验** —— 对比原帧与复刻页的文字命中率和位置偏差
 
 ---
 
@@ -557,7 +633,7 @@ pptxgenjs>=3.12.0      # PPT 生成
 
 ```
 scholar-forge/
-├── skills/                                   # 技能包目录（13 个）
+├── skills/                                   # 技能包目录（17 个）
 │   ├── academic-conference-paper-writer/      # 学术年会论文写作
 │   ├── academic-paper-writer/                 # 通用学术论文写作
 │   │   └── references/                        #   结构/引文/风格参考
@@ -585,8 +661,15 @@ scholar-forge/
 │   │   └── references/                          #   IMA OpenAPI参考
 │   ├── image-knowledge-ocr-ima/                 # 图片知识OCR（IMA专用-备份）
 │   │   └── references/                          #   IMA OpenAPI参考
-│   └── backup-skills-to-github/               # 技能备份同步
-│       └── scripts/                           #   扫描/上传/整理脚本
+│   ├── backup-skills-to-github/               # 技能备份同步
+│   │   └── scripts/                           #   扫描/上传/整理脚本
+│   ├── docx-gongwen-reformat/                 # 公文格式全文重排
+│   │   └── scripts/                           #   排版与 OOXML 规范化脚本
+│   ├── docx-surgical-revision/                # Word 文档定向修订
+│   ├── github-skill-installer/                # GitHub Skill 批量安装
+│   └── video-slide-replica/                   # 视频课件复刻
+│       ├── scripts/                           #   切页/OCR/PPTX 重建脚本
+│       └── references/                        #   工作流参考
 ├── docs/                                      # 文档目录
 │   └── tools-guide.md                         #   工具配置指南
 ├── .gitignore
@@ -597,6 +680,15 @@ scholar-forge/
 ---
 
 ## 更新日志
+
+### 📅 2026-09-27
+- ✨ 新增 `docx-gongwen-reformat` 公文格式全文重排
+- ✨ 新增 `docx-surgical-revision` Word 文档定向修订与逐段验收
+- ✨ 新增 `github-skill-installer` GitHub Skill 批量安装与安全审计
+- ✨ 新增 `video-slide-replica` 视频课件可编辑 PPTX 复刻
+- 🔄 同步 16 个原创 Skills 的最新文件，仓库技能总数更新为 17
+- 🔧 更新 `agnes-image-video` 至 2.5 Flash 模型说明
+- 🛡️ 技能备份流程新增缓存、字节码、日志和临时文件过滤
 
 ### 📅 2026-08-18
 - ✨ 新增 `homework-grader` 通用作业批改系统
@@ -780,7 +872,7 @@ Made with ❤️ by [Yin](https://github.com/FooFieYoon)
 
 ## Overview
 
-**ScholarForge (Academic Craftsmanship Workshop)** is a comprehensive collection of AI-driven academic tools designed to streamline the entire research and writing workflow. All tools are implemented as **Markdown-based instruction files (SKILL.md)** that can be imported into mainstream AI programming platforms.
+**ScholarForge (Academic Craftsmanship Workshop)** is a collection of 17 AI-driven skills for academic writing, Office document processing, knowledge management, intellectual property documentation, multimodal generation, and reusable workflow automation. Every skill is packaged as a **Markdown-based instruction file (SKILL.md)** with its supporting scripts and references, ready for import into mainstream AI programming platforms.
 
 ### 🌟 What Makes ScholarForge Special?
 
@@ -788,7 +880,7 @@ Made with ❤️ by [Yin](https://github.com/FooFieYoon)
 |---------|-------------|
 | 🤖 **AI-Native** | Every skill is crafted by AI agents for AI agents |
 | 🔌 **Plug-and-Play** | Simple SKILL.md format, compatible with multiple platforms |
-| 🔄 **Full Lifecycle** | Covers the entire academic workflow from topic selection to publication |
+| 🔄 **Full Lifecycle** | Covers research, Office documents, knowledge management, and multimodal production |
 | 🎨 **Multi-Modal** | Supports text, charts, presentations, and code documentation |
 | 🌍 **Open Source** | MIT licensed, community-driven development |
 
@@ -1087,9 +1179,9 @@ Agnes AI image and video generation. Supports text-to-image, image-to-image, tex
 **Core Capabilities:**
 - 🎨 **Text-to-Image** —— 1K/2K/3K/4K resolution, 8 aspect ratios (16:9/9:16/1:1/4:3/3:4/2:3/3:2/21:9)
 - 🔄 **Image-to-Image** —— Style transfer or local modification based on input image
-- 🎬 **Text-to-Video** —— 81~441 frames (~3~18 seconds), 24fps, async polling mechanism
-- 🎞️ **Image-to-Video** —— Dynamic video from input image, supports keyframe control
-- 📋 **Dual Model** —— Image model `agnes-image-2.1-flash` + Video model `agnes-video-v2.0`
+- 🎬 **Text-to-Video** —— 4–12 seconds at fixed 720P, with asynchronous task polling
+- 🎞️ **Image-to-Video** —— Supports keyframe first/last-frame control and multi-asset reference mode
+- 📋 **Dual Model** —— Image model `agnes-image-2.5-flash` + Video model `agnes-video-2.5-flash`
 
 **Built-in Resources:**
 - `scripts/agnes-ai.py` — Image/video generation script with `image` / `video` / `video-query` subcommands
@@ -1097,6 +1189,64 @@ Agnes AI image and video generation. Supports text-to-image, image-to-image, tex
 - `references/video_api.md` — Video API reference
 
 **Tech Stack:** Python (standard library only) + Agnes AI API (OpenAI-compatible format)
+
+---
+
+### 📄 Word Document Processing Series
+
+#### 14️⃣ Government-Document DOCX Reformatter
+**`docx-gongwen-reformat`**
+
+Reformats finalized `.docx` plans, reports, proposals, and speeches into a consistent Chinese government-document layout without changing the written content.
+
+**Core Capabilities:**
+- 📐 Standard A4 margins, heading hierarchy, body typography, spacing, and indentation
+- 🧭 Role-based paragraph classification instead of unreliable style-name-only detection
+- 📊 Table, caption, footer, and PAGE-field normalization
+- ✅ Content-preservation, formatting, and OOXML-structure validation
+
+---
+
+#### 15️⃣ Surgical DOCX Revision
+**`docx-surgical-revision`**
+
+Applies targeted revisions to long formatted Word documents while preserving the existing layout and validating every change with paragraph-level diffs.
+
+**Core Capabilities:**
+- 🎯 Text-anchor location for paragraphs and tables
+- 🧬 Format-preserving cloning of paragraphs, tables, and rows
+- 🔍 Explicit added/deleted/replaced text verification
+- 📎 Removable revision notes and clean-document rollback
+
+---
+
+### 🔧 Skill Installation & Maintenance Series
+
+#### 16️⃣ GitHub Skill Installer
+**`github-skill-installer`**
+
+Downloads third-party skills from GitHub, verifies archive integrity, performs a pre-install security audit, installs complete directories, and validates the result.
+
+**Core Capabilities:**
+- 🌐 Mirror-assisted downloads for restricted or unstable networks
+- 🛡️ P0/P1/P2 risk classification before installation
+- 📦 Complete package installation including scripts, references, assets, and manifests
+- ✅ Frontmatter, dependency, file-count, and optional MCP checks
+
+---
+
+### 🎬 Slide Reconstruction Series
+
+#### 17️⃣ Video Slide Replica
+**`video-slide-replica`**
+
+Reconstructs editable PPTX files from teaching videos, screen recordings, and conference replays while retaining the original visual structure.
+
+**Core Capabilities:**
+- 🎞️ OCR-assisted slide-boundary detection
+- 🖼️ Clean background extraction with subtitle and watermark removal
+- ✏️ Editable text-box and native-shape reconstruction
+- ✅ OCR-based position and content verification against source frames
 
 ---
 
@@ -1258,7 +1408,7 @@ pptxgenjs>=3.12.0      # PPT generation
 
 ```
 scholar-forge/
-├── skills/                                   # Skill packages directory (13 skills)
+├── skills/                                   # Skill packages directory (17 skills)
 │   ├── academic-conference-paper-writer/      # Academic conference paper writing
 │   ├── academic-paper-writer/                 # General academic paper writing
 │   │   └── references/                        #   Structure/citation/style references
@@ -1286,8 +1436,15 @@ scholar-forge/
 │   │   └── references/                          #   IMA OpenAPI reference
 │   ├── image-knowledge-ocr-ima/                 # Image knowledge OCR (IMA specialized - backup)
 │   │   └── references/                          #   IMA OpenAPI reference
-│   └── backup-skills-to-github/               # Skill backup & sync
-│       └── scripts/                           #   Scan/upload/organize scripts
+│   ├── backup-skills-to-github/               # Skill backup & sync
+│   │   └── scripts/                           #   Scan/upload/organize scripts
+│   ├── docx-gongwen-reformat/                 # Government-document DOCX reformatting
+│   │   └── scripts/                           #   Formatting and OOXML normalization
+│   ├── docx-surgical-revision/                # Surgical Word document revision
+│   ├── github-skill-installer/                # GitHub Skill batch installation
+│   └── video-slide-replica/                   # Editable slide reconstruction from video
+│       ├── scripts/                           #   Segmentation/OCR/PPTX reconstruction
+│       └── references/                        #   Workflow references
 ├── docs/                                      # Documentation directory
 │   └── tools-guide.md                         #   Tool configuration guide
 ├── .gitignore
@@ -1395,13 +1552,3 @@ Made with ❤️ by [Yin](https://github.com/FooFieYoon)
 
 </div>
 
----
-
-## 包含的 Skills
-
-| Skill 名称 | 功能说明 |
-|---|---|
-| `docx-gongwen-reformat` | 把既有的 .docx 长文档（规划、建议稿、报告、方案、讲话稿）全文按"公文格式"重新排版——A4／上3.7下3.5左2.8右2.6厘米页边距、一级标题黑体三号另起一页、正文宋体小四＋1.5倍行距＋首行缩进2字符、表格宋体五号表头加粗居中、页脚居中页码、全稿字体颜色统一为黑色。当用户说"按通用建议稿格式重新排版""按公文格式排版""全文重新排版""统一字体字号""加页码、加首行缩进""排版不规范要重排"时触发。核心是按角色（而非样式名）判定段落层级＋OOXML 子元素顺序收尾＋结构级校验。 |
-| `docx-surgical-revision` | 对既有的 .docx 长文档（规划、报告、方案、讲话稿）做"保持原格式"的定向修订，并按锚点定位、逐段 diff 验收。当用户要求"按某份评审/审阅意见修改 Word 文档""改稿并另存新文档""在既有 Word 里补齐表格行/新增附注/更正口径/统一数字"时触发。核心是文本锚点定位＋克隆既有元素继承格式＋difflib 逐段验收，避免正文静默丢失。 |
-| `github-skill-installer` | 从 GitHub 仓库批量安装第三方 skill 到 WorkBuddy 用户技能目录的完整工作流。当用户说"安装/搜索某个 GitHub 仓库里的 skill""把这个仓库的 skills 装上"时触发。覆盖：仓库获取（沙箱网络受限时走 ghfast.top 加速镜像）、完整目录解压、安全审计扫描（P0/P1 风险判定）、整目录安装到 ~/.workbuddy/skills/、 安装后校验与临时文件清理。 |
-| `video-slide-replica` | 从教学/说课视频（B站、本地录屏、会议回放等）反向复刻出可编辑的 PPTX。当用户给出一个视频链接或视频文件并说"复刻这个视频里的PPT""照着视频做一份一样的幻灯片""还原视频中的课件"时使用。流程：取视频源 → 切页 → 逐页抽取干净背景（保留水墨/装饰/实拍图）+ 文字样式 → python-pptx 重建 → OCR 回验版式一致。 |
