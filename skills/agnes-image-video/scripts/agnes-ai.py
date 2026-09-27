@@ -25,6 +25,11 @@ Usage:
     # Polling video (auto-wait)
     python agnes-ai.py video --prompt "..." --poll --max-wait 600
 
+    # 指定站点（中国站 / 国际站）方式一：命令行
+    python agnes-ai.py --api-base https://api.agnes-ai.cn/v1 video --prompt "..." --poll
+
+    # 指定站点方式二：环境变量 AGNES_API_BASE / AGNES_BASE_URL（写入 <SKILL_DIR>/.env）
+
 API Reference:
     Image:  https://agnes-ai.com/doc/agnes-image-25-flash
     Video:  https://agnes-ai.com/zh-Hans/docs/agnes-video-25-flash
@@ -32,6 +37,12 @@ API Reference:
 Models (both FREE as of 2026-09):
     Image:  agnes-image-2.5-flash
     Video:  agnes-video-2.5-flash  (free 720P; text / keyframe / reference modes)
+
+API Base URL (站点，可切换):
+    国际站（默认）: https://apihub.agnes-ai.com/v1
+    中国站:        https://api.agnes-ai.cn/v1
+    通过环境变量 AGNES_API_BASE / AGNES_BASE_URL 或命令行 --api-base 切换，
+    脚本会自动适配对应的视频查询域名，无需改任何代码。
 """
 
 import argparse
@@ -66,15 +77,44 @@ load_env_file(os.path.join(script_dir, '.env'))
 load_env_file(os.path.join(script_dir, '..', '.env'))
 
 
-# 官方国际站 Base URL（Agnes Image 2.5 Flash 与 Agnes Video 2.5 Flash 均使用此域名）
-API_BASE = "https://apihub.agnes-ai.com/v1"
+# ===== 站点 / 模型默认值（运行时可由环境变量或命令行覆盖）=====
+IMAGE_MODEL_DEFAULT = "agnes-image-2.5-flash"
+VIDEO_MODEL_DEFAULT = "agnes-video-2.5-flash"
+API_BASE_DEFAULT = "https://apihub.agnes-ai.com/v1"   # 国际站（默认）
+QUERY_PATH = "/agnesapi"
 
-# 视频任务查询 Base URL（2.5 系列必须使用 model_name 参数）
-VIDEO_QUERY_BASE = "https://apihub.agnes-ai.com/agnesapi"
+# 以下全局变量在 main() 中根据环境变量 / 命令行参数确定最终值
+API_BASE = API_BASE_DEFAULT
+VIDEO_QUERY_BASE = "https://apihub.agnes-ai.com/agnesapi"  # 占位，main 中重算
+IMAGE_MODEL = IMAGE_MODEL_DEFAULT
+VIDEO_MODEL = VIDEO_MODEL_DEFAULT
 
-# 当前模型 ID（均为免费模型）
-IMAGE_MODEL = "agnes-image-2.5-flash"
-VIDEO_MODEL = "agnes-video-2.5-flash"
+
+def resolve_api_base():
+    """确定图片/视频创建接口的 Base URL。
+
+    优先级：命令行 --api-base > 环境变量 AGNES_API_BASE > 环境变量 AGNES_BASE_URL > 默认（国际站）。
+    """
+    base = (os.environ.get("AGNES_API_BASE")
+            or os.environ.get("AGNES_BASE_URL")
+            or API_BASE_DEFAULT)
+    return base.rstrip("/")
+
+
+def resolve_query_base(base):
+    """根据 create base 推导视频查询域名。
+
+    base 形如 https://apihub.agnes-ai.com/v1 -> 查询 https://apihub.agnes-ai.com/agnesapi。
+    可用环境变量 AGNES_QUERY_BASE 强制覆盖（当查询域名与创建域名不一致时）。
+    """
+    override = os.environ.get("AGNES_QUERY_BASE")
+    if override:
+        return override.rstrip("/")
+    if base.endswith("/v1"):
+        host = base[:-3]
+    else:
+        host = base
+    return host + QUERY_PATH
 
 
 def get_api_key():
@@ -269,7 +309,7 @@ def _poll_video(video_id, task_id, max_wait, poll_interval, args):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     while time.time() - start < max_wait:
-        # 2.5 系列必须使用 video_id + model_name 查询
+        # 2.5 系列必须使用 video_id + model_name 查询（站点无关）
         url = f"{VIDEO_QUERY_BASE}?video_id={video_id}&model_name={VIDEO_MODEL}"
         headers = {"Authorization": f"Bearer {api_key}"}
         req = urllib.request.Request(url, headers=headers, method="GET")
@@ -291,7 +331,7 @@ def _poll_video(video_id, task_id, max_wait, poll_interval, args):
         print(f"  [poll] status={status}, progress={progress}%", file=sys.stderr)
 
         if status == "completed":
-            # 2.5 系列：视频地址位于响应顶层 url 字段
+            # 2.5 系列：视频地址位于响应顶层 url 字段（站点无关）
             video_url = result.get("url") or (result.get("metadata", {}) or {}).get("url")
             if video_url:
                 out_path = output_dir / f"agnes_video_{timestamp}.mp4"
@@ -336,7 +376,7 @@ def query_video(args):
     api_key = get_api_key()
     video_id = args.video_id
 
-    # 2.5 系列必须使用 video_id + model_name 查询
+    # 2.5 系列必须使用 video_id + model_name 查询（站点无关）
     url = f"{VIDEO_QUERY_BASE}?video_id={video_id}&model_name={VIDEO_MODEL}"
     headers = {"Authorization": f"Bearer {api_key}"}
     req = urllib.request.Request(url, headers=headers, method="GET")
@@ -372,7 +412,12 @@ def query_video(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Agnes AI Image & Video Generation CLI")
+    parent = argparse.ArgumentParser(add_help=False)
+    parent.add_argument("--api-base", default=None,
+                        help="Agnes API base URL. 国际站(默认): https://apihub.agnes-ai.com/v1 ; "
+                             "中国站: https://api.agnes-ai.cn/v1 . 也可用 .env 的 AGNES_API_BASE / AGNES_BASE_URL 设置。")
+
+    parser = argparse.ArgumentParser(description="Agnes AI Image & Video Generation CLI", parents=[parent])
     sub = parser.add_subparsers(dest="command", required=True)
 
     # Image command
@@ -416,6 +461,13 @@ def main():
     q_parser.add_argument("--output-dir", default=".", help="Directory to save output files")
 
     args = parser.parse_args()
+
+    # 根据命令行 / 环境变量确定最终站点、模型
+    global API_BASE, VIDEO_QUERY_BASE, IMAGE_MODEL, VIDEO_MODEL
+    API_BASE = args.api_base or resolve_api_base()
+    VIDEO_QUERY_BASE = resolve_query_base(API_BASE)
+    IMAGE_MODEL = os.environ.get("AGNES_IMAGE_MODEL") or IMAGE_MODEL_DEFAULT
+    VIDEO_MODEL = os.environ.get("AGNES_VIDEO_MODEL") or VIDEO_MODEL_DEFAULT
 
     if args.command == "image":
         generate_image(args)
