@@ -7,6 +7,8 @@ description: "Agnes AI 图片生成和视频生成能力。支持文生图、图
 
 通过 Agnes AI API 生成高质量图片和视频。API 兼容 OpenAI 格式，使用 Bearer Token 认证。
 
+> **模型版本（2026-09 更新）**：图片使用 **`agnes-image-2.5-flash`**，视频使用 **`agnes-video-2.5-flash`**（限时免费，固定 720P）。原 `agnes-video-v2.0` 已于 2026-09-25 正式下线，请勿再调用。图片与视频统一使用国际站 `https://apihub.agnes-ai.com/v1`。
+
 ## 前置条件
 
 - API Key 已配置在 `<SKILL_DIR>/.env`（首次使用时请更新）
@@ -18,6 +20,8 @@ C:/Users/<user>/AppData/Local/Programs/WorkBuddy/resources/app.asar.unpacked/res
 ```
 
 ## 图像生成
+
+当前使用 **`agnes-image-2.5-flash`**（免费，支持文生图、图生图、多图合成）。
 
 ### 文生图
 
@@ -54,7 +58,7 @@ python <SKILL_DIR>/scripts/agnes-ai.py image \
 
 ## 视频生成
 
-视频生成是**异步**的：先创建任务，再轮询结果。
+视频生成是**异步**的：先创建任务，再轮询结果。当前使用 **`agnes-video-2.5-flash`**（限时免费，固定 720P，支持 `text` / `keyframe` / `reference` 三种模式）。原 `agnes-video-v2.0` 已于 2026-09-25 下线，请勿再使用。
 
 ### 文生视频
 
@@ -62,40 +66,63 @@ python <SKILL_DIR>/scripts/agnes-ai.py image \
 # 提交任务（不等待）
 python <SKILL_DIR>/scripts/agnes-ai.py video \
   --prompt "A cinematic shot of a cat walking on the beach at sunset" \
-  --width 1152 --height 768 --num-frames 121 --frame-rate 24
+  --seconds 5 --size 720P --aspect-ratio 16:9
 
 # 自动轮询等待结果（推荐）
 python <SKILL_DIR>/scripts/agnes-ai.py video \
-  --prompt "..." \
-  --width 1152 --height 768 --num-frames 121 --frame-rate 24 \
+  --prompt "..." --seconds 5 --size 720P --aspect-ratio 16:9 \
   --poll --max-wait 600
 ```
 
-### 图生视频
+### 图生视频（keyframe 首帧）
 
 ```bash
 python <SKILL_DIR>/scripts/agnes-ai.py video \
   --prompt "Person slowly turns around and looks at the camera" \
   --image "https://example.com/photo.jpg" \
-  --poll
+  --mode keyframe --poll
+```
+
+### 首尾帧控制（keyframe）
+
+```bash
+python <SKILL_DIR>/scripts/agnes-ai.py video \
+  --prompt "..." --mode keyframe \
+  --first-frame "https://example.com/first.png" \
+  --last-frame "https://example.com/last.png" --poll
+```
+
+### 图片/音频参考（reference）
+
+```bash
+python <SKILL_DIR>/scripts/agnes-ai.py video \
+  --prompt "以 <Picture 1> 的角色风格为参考，角色在花田中奔跑" \
+  --mode reference --images "https://example.com/char.png" --poll
 ```
 
 参数：
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
 | `--prompt` | 视频描述（必填） | — |
-| `--image` | 输入图片 URL（图生视频） | — |
-| `--keyframe-images` | 逗号分隔的关键帧 URL 列表 | — |
-| `--width` | 视频宽度 | 1152 |
-| `--height` | 视频高度 | 768 |
-| `--num-frames` | 帧数（≤441，遵循 8n+1） | — |
-| `--frame-rate` | 帧率（1-60） | 24 |
+| `--mode` | 生成模式：`text` / `keyframe` / `reference` | `text` |
+| `--seconds` | 视频时长（字符串 `"4"`–`"12"`） | `5` |
+| `--size` | 分辨率档位：`720P`（Flash 仅支持 720P）/ `1080P` / `1K` / `2K` | `720P` |
+| `--aspect-ratio` | 画幅：`16:9`/`9:16`/`1:1`/`4:3`/`3:4`/`21:9` | `16:9` |
+| `--seed` | 随机种子（可复现） | — |
+| `--image` | 输入图片 URL（keyframe 首帧 / reference 图片 / 简单图生视频） | — |
+| `--first-frame` | keyframe 模式首帧图片 URL | — |
+| `--last-frame` | keyframe 模式尾帧图片 URL | — |
+| `--images` | reference 模式逗号分隔图片 URL 列表（Flash ≤5 张） | — |
+| `--audios` | reference 模式逗号分隔音频 URL 列表（Flash ≤3 段） | — |
 | `--negative-prompt` | 反向提示词 | — |
 | `--poll` | 自动轮询等待结果 | 不等待 |
 | `--max-wait` | 最大等待秒数 | 600 |
 | `--output-dir` | 输出目录 | `.` |
 
-帧数规则：必须 ≤ 441 且满足 `8n+1`，常用值：81（约3秒）、121（约5秒）、241（约10秒）、441（约18秒）。
+模式说明：
+- `text`：纯文生视频（可单独传 `--image` 自动转为 keyframe 首帧）。
+- `keyframe`：用首帧 / 尾帧 / 首尾帧控制起止构图，至少提供 `--first-frame` 或 `--last-frame` 之一。
+- `reference`：用图片 / 音频作为风格或内容参考，传入 `--images` 或 `--audios`。
 
 ### 查询视频结果
 
