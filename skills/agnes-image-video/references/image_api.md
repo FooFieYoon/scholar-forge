@@ -6,7 +6,9 @@
 > 最新一代图片模型，能力全面超越 `agnes-image-2.1-flash`，请求/响应契约与 2.1 Flash 完全一致。当前所有输出分辨率档位与输入参考图均免费。
 
 ## Endpoint
-`POST https://apihub.agnes-ai.com/v1/images/generations`
+`POST {AGNES_API_BASE}/images/generations`（默认 `https://apihub.agnes-ai.com/v1/images/generations`）
+
+> 域名可切换：国际站 `apihub.agnes-ai.com`，中国站 `api.agnes-ai.cn`。通过环境变量 `AGNES_API_BASE`（或 `AGNES_BASE_URL`）或命令行 `--api-base` 指定，脚本会自动拼接 `/images/generations`。两种站点均使用同一套模型与参数。
 
 ## Headers
 ```
