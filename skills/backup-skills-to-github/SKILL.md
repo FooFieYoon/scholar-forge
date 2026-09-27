@@ -1,7 +1,11 @@
 ---
 name: backup-skills-to-github
 author: Yin
-description: "备份原创 Skills 到 GitHub ScholarForge 仓库。当用户说"备份 skills"、"备份 skill"、"上传 skills 到 github"、"backup my skills"、"sync skills to github"时触发。自动扫描 agent_created 的原创 skill，通过 API 上传所有文件，README 增量更新（只添加新条目不覆盖已有内容）。"
+agent_created: true
+description: >
+  备份原创 Skills 到 GitHub ScholarForge 仓库。当用户说“备份 skills”“备份 skill”
+  “上传 skills 到 GitHub”“backup my skills”或“sync skills to GitHub”时触发。
+  自动扫描 agent_created 的原创 skill，通过 API 上传全部必要文件，并以增量方式更新 README。
 ---
 
 # Backup Skills to GitHub
