@@ -96,11 +96,14 @@ def collect_skill_files(skill_name):
     """Collect all files under a skill directory."""
     skill_path = os.path.join(SKILLS_DIR, skill_name)
     files = []
-    # Files to skip when uploading (contain secrets or are local configs)
+    # Files/directories to skip when uploading (secrets, caches, logs, local artifacts)
     SKIP_NAMES = {".env", ".env.local", ".env.production"}
-    for root, _dirs, fnames in os.walk(skill_path):
+    SKIP_DIRS = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
+    SKIP_SUFFIXES = {".pyc", ".pyo", ".log", ".tmp"}
+    for root, dirs, fnames in os.walk(skill_path):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         for fname in fnames:
-            if fname in SKIP_NAMES:
+            if fname in SKIP_NAMES or os.path.splitext(fname)[1].lower() in SKIP_SUFFIXES:
                 continue
             fpath = os.path.join(root, fname)
             rel = os.path.relpath(fpath, SKILLS_DIR).replace(os.sep, "/")
