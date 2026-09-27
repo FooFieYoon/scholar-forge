@@ -7,9 +7,10 @@
 > 原 `agnes-video-v2.0` 已于 2026-09-25 23:59:59（UTC+8）正式下线，请勿再调用。
 
 ## Endpoints
-- Create: `POST https://apihub.agnes-ai.com/v1/videos`
-- Query (recommended): `GET https://apihub.agnes-ai.com/agnesapi?video_id=<VIDEO_ID>&model_name=agnes-video-2.5-flash`
-- Query (legacy, 仅 text 模式): `GET https://apihub.agnes-ai.com/agnesapi?video_id=<VIDEO_ID>`
+- Create: `POST {AGNES_API_BASE}/videos`（默认 `https://apihub.agnes-ai.com/v1/videos`）
+- Query (recommended): `GET {AGNES_API_BASE 所在 host}/agnesapi?video_id=<VIDEO_ID>&model_name=agnes-video-2.5-flash`
+
+> 域名可切换：国际站 `apihub.agnes-ai.com`，中国站 `api.agnes-ai.cn`。通过环境变量 `AGNES_API_BASE`（或 `AGNES_BASE_URL`）或命令行 `--api-base` 指定创建接口 Base；脚本会自动推导对应的 `/agnesapi` 查询域名（亦可用 `AGNES_QUERY_BASE` 强制覆盖）。两种站点均使用同一套模型与参数。
 
 > 2.5 系列所有模式均推荐在查询 URL 中携带 `model_name=agnes-video-2.5-flash`；`keyframe` / `reference` 模式必须携带，否则查询会失败。
 
