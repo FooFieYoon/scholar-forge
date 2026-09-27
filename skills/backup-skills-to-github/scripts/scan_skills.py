@@ -15,7 +15,39 @@ import json
 import argparse
 
 
-DEFALT_SKILLS_DIR = os.path.expanduser("~/.workbuddy/skills")
+DEFAULT_SKILLS_DIR = os.path.expanduser("~/.workbuddy/skills")
+
+
+def parse_frontmatter(content):
+    """Parse the simple YAML subset used by SKILL.md, including folded blocks."""
+    match = re.match(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
+    if not match:
+        return {}
+    lines = match.group(1).splitlines()
+    frontmatter = {}
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if ":" not in line:
+            i += 1
+            continue
+        idx = line.index(":")
+        key = line[:idx].strip()
+        value = line[idx + 1:].strip().strip("\"'")
+        if value in (">", "|"):
+            folded = []
+            i += 1
+            while i < len(lines) and (lines[i].startswith("  ") or not lines[i].strip()):
+                folded.append(lines[i].strip())
+                i += 1
+            value = " ".join(part for part in folded if part)
+            if line[idx + 1:].strip() == "|":
+                value = "\n".join(folded)
+            frontmatter[key] = value
+            continue
+        frontmatter[key] = value
+        i += 1
+    return frontmatter
 
 
 def scan_original_skills(skills_dir):
@@ -29,18 +61,11 @@ def scan_original_skills(skills_dir):
             try:
                 with open(fp, "r", encoding="utf-8") as f:
                     content = f.read()
-                m = re.match(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
-                if not m:
+                fm = parse_frontmatter(content)
+                if not fm:
                     continue
-                fm = {}
-                for line in m.group(1).splitlines():
-                    if ":" in line:
-                        idx = line.index(":")
-                        k = line[:idx].strip()
-                        v = line[idx + 1:].strip().strip("\"'")
-                        fm[k] = v
                 ac = fm.get("agent_created", "")
-                if str(ac).lower() in ("true", "true"):
+                if str(ac).lower() == "true":
                     rel = os.path.relpath(root, skills_dir)
                     desc = fm.get("description", "")
                     results.append({"name": rel, "path": root, "description": desc})
@@ -51,7 +76,7 @@ def scan_original_skills(skills_dir):
 
 def main():
     parser = argparse.ArgumentParser(description="Scan WorkBuddy original skills")
-    parser.add_argument("--path", default=DEFALT_SKILLS_DIR, help="Skills directory path")
+    parser.add_argument("--path", default=DEFAULT_SKILLS_DIR, help="Skills directory path")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
