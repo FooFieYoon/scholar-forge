@@ -3,17 +3,21 @@
 Agnes AI Image & Video Generation Script
 
 Usage:
-    # Image generation
+    # Image generation (text-to-image)
     python agnes-ai.py image --prompt "a cute cat" --size 1K --ratio 16:9 --output-dir ./output
 
     # Image generation (Base64)
     python agnes-ai.py image --prompt "a cute cat" --size 1K --ratio 16:9 --output-format b64
 
-    # Video generation (text-to-video)
-    python agnes-ai.py video --prompt "a cat walking on the beach" --width 1152 --height 768 --num-frames 121 --frame-rate 24
+    # Image-to-image / multi-image composition
+    python agnes-ai.py image --prompt "Transform into a cyberpunk neon style" \
+        --image "https://example.com/input.jpg" --size 1024x768
 
-    # Video generation (image-to-video)
-    python agnes-ai.py video --prompt "person turns around" --image "https://example.com/image.jpg"
+    # Video generation (text-to-video)
+    python agnes-ai.py video --prompt "a cat walking on the beach" --seconds 5 --size 720P --aspect-ratio 16:9
+
+    # Video generation (image-to-video, keyframe)
+    python agnes-ai.py video --prompt "person turns around" --image "https://example.com/photo.jpg" --mode keyframe
 
     # Video result query
     python agnes-ai.py video-query --video-id "video_xxx"
@@ -21,8 +25,13 @@ Usage:
     # Polling video (auto-wait)
     python agnes-ai.py video --prompt "..." --poll --max-wait 600
 
-API Reference: https://agnes-ai.com/doc/agnes-image-21-flash
-              https://agnes-ai.com/zh-Hans/docs/agnes-video-v20
+API Reference:
+    Image:  https://agnes-ai.com/doc/agnes-image-25-flash
+    Video:  https://agnes-ai.com/zh-Hans/docs/agnes-video-25-flash
+
+Models (both FREE as of 2026-09):
+    Image:  agnes-image-2.5-flash
+    Video:  agnes-video-2.5-flash  (free 720P; text / keyframe / reference modes)
 """
 
 import argparse
@@ -31,6 +40,11 @@ import json
 import os
 import sys
 import time
+import urllib.request
+import urllib.error
+from datetime import datetime
+from pathlib import Path
+
 
 def load_env_file(env_path):
     """手动加载 .env 文件（不依赖 python-dotenv 库）"""
@@ -45,19 +59,22 @@ def load_env_file(env_path):
                     if key and not os.environ.get(key):
                         os.environ[key] = value
 
+
 # 尝试从脚本同目录加载 .env
 script_dir = os.path.dirname(os.path.abspath(__file__))
 load_env_file(os.path.join(script_dir, '.env'))
 load_env_file(os.path.join(script_dir, '..', '.env'))
-import time
-import urllib.request
-import urllib.error
-from datetime import datetime
-from pathlib import Path
 
 
-API_BASE = "https://api.agnes-ai.cn/v1"
-VIDEO_QUERY_BASE = "https://api.agnes-ai.cn/agnesapi"
+# 官方国际站 Base URL（Agnes Image 2.5 Flash 与 Agnes Video 2.5 Flash 均使用此域名）
+API_BASE = "https://apihub.agnes-ai.com/v1"
+
+# 视频任务查询 Base URL（2.5 系列必须使用 model_name 参数）
+VIDEO_QUERY_BASE = "https://apihub.agnes-ai.com/agnesapi"
+
+# 当前模型 ID（均为免费模型）
+IMAGE_MODEL = "agnes-image-2.5-flash"
+VIDEO_MODEL = "agnes-video-2.5-flash"
 
 
 def get_api_key():
@@ -106,11 +123,11 @@ def api_request(endpoint, method="POST", body=None, api_key=None, query_params=N
 
 
 def generate_image(args):
-    """Generate image using agnes-image-2.1-flash."""
+    """Generate image using agnes-image-2.5-flash."""
     api_key = get_api_key()
 
     body = {
-        "model": "agnes-image-2.1-flash",
+        "model": IMAGE_MODEL,
         "prompt": args.prompt,
         "size": args.size,
     }
@@ -118,10 +135,12 @@ def generate_image(args):
     if hasattr(args, "ratio") and args.ratio:
         body["ratio"] = args.ratio
 
+    # 图生图 / 多图合成：通过 extra_body.image 传入图片数组
     if hasattr(args, "image") and args.image:
-        body["extra_body"] = {"image": [args.image]}
+        extra = {"image": [args.image]}
         if hasattr(args, "output_format") and args.output_format == "b64":
-            body["extra_body"]["response_format"] = "b64_json"
+            extra["response_format"] = "b64_json"
+        body["extra_body"] = extra
     elif hasattr(args, "output_format") and args.output_format == "b64":
         body["return_base64"] = True
 
@@ -178,37 +197,45 @@ def generate_image(args):
 
 
 def generate_video(args):
-    """Generate video using agnes-video-v2.0 (async)."""
+    """Generate video using agnes-video-2.5-flash (async)."""
     api_key = get_api_key()
 
+    # 图生视频便捷写法：单独传入 --image 时，自动转为 keyframe 首帧
+    mode = args.mode
+    if args.image and mode == "text" and not args.first_frame and not args.last_frame and not args.images:
+        mode = "keyframe"
+        args.first_frame = args.image
+
     body = {
-        "model": "agnes-video-v2.0",
+        "model": VIDEO_MODEL,
         "prompt": args.prompt,
+        "mode": mode,
+        "seconds": str(args.seconds),
+        "size": args.size,
+        "aspect_ratio": args.aspect_ratio,
     }
 
-    if hasattr(args, "image") and args.image:
-        body["image"] = args.image
+    if args.seed is not None:
+        body["seed"] = args.seed
 
-    if hasattr(args, "width") and args.width:
-        body["width"] = args.width
-    if hasattr(args, "height") and args.height:
-        body["height"] = args.height
-    if hasattr(args, "num_frames") and args.num_frames:
-        body["num_frames"] = args.num_frames
-    if hasattr(args, "frame_rate") and args.frame_rate:
-        body["frame_rate"] = args.frame_rate
-
-    if hasattr(args, "mode") and args.mode:
-        body["mode"] = args.mode
-
-    if hasattr(args, "negative_prompt") and args.negative_prompt:
+    if args.negative_prompt:
         body["negative_prompt"] = args.negative_prompt
 
-    if hasattr(args, "keyframe_images") and args.keyframe_images:
-        body["extra_body"] = {
-            "image": args.keyframe_images.split(","),
-            "mode": "keyframes"
-        }
+    if mode == "keyframe":
+        if args.first_frame:
+            body["first_frame"] = args.first_frame
+        if args.last_frame:
+            body["last_frame"] = args.last_frame
+    elif mode == "reference":
+        images = []
+        if args.image:
+            images.append(args.image)
+        if args.images:
+            images.extend([u.strip() for u in args.images.split(",") if u.strip()])
+        if images:
+            body["images"] = images
+        if args.audios:
+            body["audios"] = [u.strip() for u in args.audios.split(",") if u.strip()]
 
     result = api_request("videos", body=body, api_key=api_key)
 
@@ -221,14 +248,15 @@ def generate_video(args):
 
     if hasattr(args, "poll") and args.poll:
         max_wait = getattr(args, "max_wait", 600)
-        poll_interval = getattr(args, "poll_interval", 10)
+        poll_interval = getattr(args, "poll_interval", 5)
         _poll_video(video_id, task_id, max_wait, poll_interval, args)
     else:
         print(json.dumps({
             "status": "submitted",
             "video_id": video_id,
             "task_id": task_id,
-            "message": "Video generation task submitted. Use --video-id to poll for results."
+            "model": VIDEO_MODEL,
+            "message": "Video generation task submitted. Use video-query --video-id to poll for results, or rerun with --poll."
         }))
 
 
@@ -241,8 +269,8 @@ def _poll_video(video_id, task_id, max_wait, poll_interval, args):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     while time.time() - start < max_wait:
-        # Try the recommended query endpoint
-        url = f"{VIDEO_QUERY_BASE}?video_id={video_id}"
+        # 2.5 系列必须使用 video_id + model_name 查询
+        url = f"{VIDEO_QUERY_BASE}?video_id={video_id}&model_name={VIDEO_MODEL}"
         headers = {"Authorization": f"Bearer {api_key}"}
         req = urllib.request.Request(url, headers=headers, method="GET")
 
@@ -263,7 +291,8 @@ def _poll_video(video_id, task_id, max_wait, poll_interval, args):
         print(f"  [poll] status={status}, progress={progress}%", file=sys.stderr)
 
         if status == "completed":
-            video_url = (result.get("metadata", {}) or {}).get("url") or result.get("url")
+            # 2.5 系列：视频地址位于响应顶层 url 字段
+            video_url = result.get("url") or (result.get("metadata", {}) or {}).get("url")
             if video_url:
                 out_path = output_dir / f"agnes_video_{timestamp}.mp4"
                 try:
@@ -307,7 +336,8 @@ def query_video(args):
     api_key = get_api_key()
     video_id = args.video_id
 
-    url = f"{VIDEO_QUERY_BASE}?video_id={video_id}"
+    # 2.5 系列必须使用 video_id + model_name 查询
+    url = f"{VIDEO_QUERY_BASE}?video_id={video_id}&model_name={VIDEO_MODEL}"
     headers = {"Authorization": f"Bearer {api_key}"}
     req = urllib.request.Request(url, headers=headers, method="GET")
 
@@ -323,7 +353,7 @@ def query_video(args):
 
     status = result.get("status", "unknown")
     if status == "completed":
-        video_url = result.get("metadata", {}).get("url")
+        video_url = result.get("url") or (result.get("metadata", {}) or {}).get("url")
         if video_url:
             output_dir = Path(args.output_dir) if hasattr(args, "output_dir") and args.output_dir else Path(".")
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -346,13 +376,13 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
 
     # Image command
-    img_parser = sub.add_parser("image", help="Generate image from text")
+    img_parser = sub.add_parser("image", help="Generate image from text or image")
     img_parser.add_argument("--prompt", required=True, help="Text prompt for image generation")
     img_parser.add_argument("--size", default="1K",
                             help="Output size: 1K, 2K, 3K, 4K, or custom like 1024x768 (default: 1K)")
     img_parser.add_argument("--ratio", default="1:1",
                             help="Aspect ratio: 1:1, 16:9, 9:16, 4:3, 3:4, 2:3, 3:2, 21:9 (default: 1:1)")
-    img_parser.add_argument("--image", help="Input image URL for image-to-image")
+    img_parser.add_argument("--image", help="Input image URL for image-to-image / multi-image composition")
     img_parser.add_argument("--output-format", choices=["url", "b64"], default="url",
                             help="Output format: url (default) or b64 (base64)")
     img_parser.add_argument("--output-dir", default=".", help="Directory to save output files")
@@ -360,17 +390,24 @@ def main():
     # Video command
     vid_parser = sub.add_parser("video", help="Generate video from text or image")
     vid_parser.add_argument("--prompt", required=True, help="Text prompt for video generation")
-    vid_parser.add_argument("--image", help="Input image URL for image-to-video")
-    vid_parser.add_argument("--keyframe-images", help="Comma-separated list of keyframe image URLs")
-    vid_parser.add_argument("--width", type=int, help="Video width (default: 1152)")
-    vid_parser.add_argument("--height", type=int, help="Video height (default: 768)")
-    vid_parser.add_argument("--num-frames", type=int, help="Number of frames (must be <= 441, follow 8n+1 rule)")
-    vid_parser.add_argument("--frame-rate", type=float, help="Frame rate (default: 24)")
-    vid_parser.add_argument("--mode", help="Generation mode: ti2vid, keyframes")
+    vid_parser.add_argument("--mode", choices=["text", "keyframe", "reference"], default="text",
+                            help="Generation mode: text (default), keyframe (首/尾帧), reference (图片/音频参考)")
+    vid_parser.add_argument("--seconds", default="5",
+                            help="Video duration in seconds, string \"4\"-\"12\" (default: 5)")
+    vid_parser.add_argument("--size", default="720P",
+                            help="Output resolution tier: 720P (default, Flash only), 1080P, 1K, 2K")
+    vid_parser.add_argument("--aspect-ratio", default="16:9",
+                            help="Aspect ratio: 16:9, 9:16, 1:1, 4:3, 3:4, 21:9 (default: 16:9)")
+    vid_parser.add_argument("--seed", type=int, help="Random seed for reproducible results")
+    vid_parser.add_argument("--image", help="Input image URL (keyframe 首帧, reference 图片, or simple image-to-video)")
+    vid_parser.add_argument("--first-frame", help="Keyframe mode: first frame image URL")
+    vid_parser.add_argument("--last-frame", help="Keyframe mode: last frame image URL")
+    vid_parser.add_argument("--images", help="Reference mode: comma-separated image URLs")
+    vid_parser.add_argument("--audios", help="Reference mode: comma-separated audio URLs (Flash <=3)")
     vid_parser.add_argument("--negative-prompt", help="Negative prompt")
     vid_parser.add_argument("--poll", action="store_true", help="Poll for result automatically")
     vid_parser.add_argument("--max-wait", type=int, default=600, help="Max polling time in seconds (default: 600)")
-    vid_parser.add_argument("--poll-interval", type=int, default=10, help="Polling interval in seconds (default: 10)")
+    vid_parser.add_argument("--poll-interval", type=int, default=5, help="Polling interval in seconds (default: 5)")
     vid_parser.add_argument("--output-dir", default=".", help="Directory to save output files")
 
     # Video query command
