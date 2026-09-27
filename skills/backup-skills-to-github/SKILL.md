@@ -52,10 +52,11 @@ python3 scripts/backup_skills.py FooFieYoon/scholar-forge --skill project-softco
 
 脚本自动完成：
 1. 读取所有原创 skill 文件
-2. Base64 编码内容
-3. 通过 `gh api --method PUT` 上传到仓库
-4. 如果文件已存在则更新（带 SHA）
-5. **增量更新 README.md**：读取现有 README → 解析已有 skill 列表 → 仅追加新条目
+2. 自动跳过 `.env`、`__pycache__`、`.pyc`、日志和临时文件
+3. Base64 编码内容
+4. 通过 GitHub REST API 上传到仓库
+5. 如果文件已存在则更新（带 SHA）
+6. **增量更新 README.md**：读取现有 README → 解析已有 skill 列表 → 仅追加新条目
 
 ### 第四步（可选）：优化仓库结构
 
@@ -66,6 +67,16 @@ python3 scripts/optimize_layout.py FooFieYoon/scholar-forge
 ```
 
 将散落在根目录的 skill 移动到 `skills/` 子目录，同样采用增量 README 更新。
+
+### 第五步（用户要求更新介绍页时）：整合 README 正文
+
+增量同步只保证新技能不会遗漏，不负责维护完整介绍页。若用户同时要求“更新 GitHub 介绍页/README 内容”，应在上传完成后：
+
+1. 重新 GET 最新 `README.md` 与 SHA，不能基于上传前的旧副本修改。
+2. 更新 Skills 数量徽章、项目简介、技能详细介绍、项目结构和更新日志；中英双语 README 要同步修改。
+3. 若增量同步在文件末尾生成 `## 包含的 Skills` 汇总表，而新技能已并入正文详细目录，应删除该临时汇总表，避免重复。
+4. 修正其他已过期说明（例如模型版本、失效接口），但保留手工撰写的历史内容。
+5. 通过 Contents API 携带当前 SHA 上传，再复查远程技能目录、README 技能名集合、数量徽章与最新提交。
 
 ## README 增量更新机制
 
@@ -80,6 +91,13 @@ python3 scripts/optimize_layout.py FooFieYoon/scholar-forge
     ↓ 追加
 只在文件末尾的 "## 包含的 Skills" 汇总表格中追加新条目
 ```
+
+**关键修复（2026-09-27）**：
+
+- `backup-skills-to-github` 本身纳入 `agent_created: true` 扫描范围，可同步自身更新。
+- `scan_skills.py` 支持 YAML `>` / `|` 多行 description，不再把说明误读为单个符号。
+- 上传器过滤缓存目录、Python 字节码、日志和临时文件，避免污染远程仓库。
+- 补充“完整介绍页更新”分支：增量同步后再维护中英双语正文、数量、目录树和更新日志。
 
 **关键修复（2026-08-18）**：
 
