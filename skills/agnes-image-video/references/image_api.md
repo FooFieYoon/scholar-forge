@@ -1,7 +1,9 @@
 # Agnes AI Image API Reference
 
 ## Model
-`agnes-image-2.1-flash`
+`agnes-image-2.5-flash`
+
+> 最新一代图片模型，能力全面超越 `agnes-image-2.1-flash`，请求/响应契约与 2.1 Flash 完全一致。当前所有输出分辨率档位与输入参考图均免费。
 
 ## Endpoint
 `POST https://apihub.agnes-ai.com/v1/images/generations`
@@ -17,7 +19,7 @@ Content-Type: application/json
 ### 基础参数
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `model` | string | ✅ | `agnes-image-2.1-flash` |
+| `model` | string | ✅ | `agnes-image-2.5-flash` |
 | `prompt` | string | ✅ | 图像生成/编辑的文字指令 |
 | `size` | string | ✅ | 输出尺寸：`1K`/`2K`/`3K`/`4K` 或精确如 `1024x768` |
 | `ratio` | string | ❌ | 宽高比：`1:1`/`3:4`/`4:3`/`16:9`/`9:16`/`2:3`/`3:2`/`21:9`，默认 `1:1` |
@@ -85,5 +87,5 @@ Content-Type: application/json
 | 请求超时 | 设置超时 60s-360s |
 
 ## Documentation
-- Image API: https://agnes-ai.com/doc/agnes-image-21-flash
+- Image API: https://agnes-ai.com/doc/agnes-image-25-flash
 - Overview: https://agnes-ai.cn/zh-Hans/docs/overview
