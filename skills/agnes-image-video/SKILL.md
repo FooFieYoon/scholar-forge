@@ -7,11 +7,14 @@ description: "Agnes AI 图片生成和视频生成能力。支持文生图、图
 
 通过 Agnes AI API 生成高质量图片和视频。API 兼容 OpenAI 格式，使用 Bearer Token 认证。
 
-> **模型版本（2026-09 更新）**：图片使用 **`agnes-image-2.5-flash`**，视频使用 **`agnes-video-2.5-flash`**（限时免费，固定 720P）。原 `agnes-video-v2.0` 已于 2026-09-25 正式下线，请勿再调用。图片与视频统一使用国际站 `https://apihub.agnes-ai.com/v1`。
+> **模型版本（2026-09 更新）**：图片使用 **`agnes-image-2.5-flash`**，视频使用 **`agnes-video-2.5-flash`**（限时免费，固定 720P）。原 `agnes-video-v2.0` 已于 2026-09-25 正式下线，请勿再调用。
+>
+> **API 站点可切换（中国站 / 国际站均可）**：脚本默认使用国际站 `https://apihub.agnes-ai.com/v1`。若你的 API Key 属于中国站，请在 `<SKILL_DIR>/.env` 增加一行 `AGNES_API_BASE=https://api.agnes-ai.cn/v1`（别名 `AGNES_BASE_URL` 亦可），脚本会自动适配对应的视频查询域名；也可在命令行加 `--api-base https://api.agnes-ai.cn/v1`。**无需修改任何代码**，两种站点都能正常运行。
 
 ## 前置条件
 
 - API Key 已配置在 `<SKILL_DIR>/.env`（首次使用时请更新）
+- 可选：在 `.env` 设置 `AGNES_API_BASE`（中国站 `https://api.agnes-ai.cn/v1` / 国际站 `https://apihub.agnes-ai.com/v1`，默认国际站）；不设置则使用默认国际站
 - 脚本位置：`<SKILL_DIR>/scripts/agnes-ai.py`
 
 **Windows 路径**：
